@@ -1,295 +1,406 @@
 import React, { useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CoinBadge } from '../components/CoinBadge';
-import { useGame } from '../context/GameContext';
-import { TASKS } from '../content/tasks';
-import { Task, TaskTopic } from '../logic/types';
-import { Palette, Radii, Spacing } from '../theme/colors';
+import { FinnyCharacter } from '../components/FinnyCharacter';
+import { COLORS } from '../theme/colors';
+import {
+  IconArrowBack,
+  IconCheck,
+  IconSparkleStar,
+  IconPalette,
+  IconTarget,
+  IconApple,
+} from '../components/GameIcons';
+import { FinancialTask, TaskTheme } from '../types/gameTypes';
+import { TaskModal } from '../components/TaskModal';
 
-export const TasksScreen: React.FC = () => {
-  const { state, openTaskModal } = useGame();
-  const { balance, completedTaskIds } = state;
+interface TasksScreenProps {
+  coins: number;
+  tasks: FinancialTask[];
+  onBackToRoom: () => void;
+}
 
-  const [selectedTopic, setSelectedTopic] = useState<TaskTopic | 'all'>('all');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-  const filteredTasks = TASKS.filter((t) => {
-    if (selectedTopic === 'all') return true;
-    return t.topic === selectedTopic;
-  });
+export const TasksScreen: React.FC<TasksScreenProps> = ({
+  coins,
+  tasks,
+  onBackToRoom,
+}) => {
+  const [selectedTheme, setSelectedTheme] = useState<'all' | TaskTheme>('all');
+  const [activeTask, setActiveTask] = useState<FinancialTask | null>(null);
 
-  const topicTabs: { id: TaskTopic | 'all'; label: string; icon: string }[] = [
-    { id: 'all', label: 'Все', icon: '📋' },
-    { id: 'budget', label: 'Бюджет', icon: '📊' },
-    { id: 'savings', label: 'Накопления', icon: '🏦' },
-    { id: 'shopping', label: 'Покупки', icon: '🛍️' },
-  ];
+  const filteredTasks =
+    selectedTheme === 'all' ? tasks : tasks.filter((t) => t.theme === selectedTheme);
+
+  const getThemeIcon = (theme: TaskTheme) => {
+    switch (theme) {
+      case 'budget':
+        return <IconPalette size={22} />;
+      case 'savings':
+        return <IconTarget size={22} color="#7C3AED" />;
+      case 'payments':
+        return <IconApple size={22} />;
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <Text style={styles.screenTitle}>Финансовые задания 🎯</Text>
-        <Text style={styles.screenSubtitle}>
-          Помогай Финни принимать верные решения и зарабатывай монеты!
-        </Text>
+    <View style={styles.container}>
+      {/* 3D Sunny Park Scene */}
+      <Image
+        source={require('../../assets/scenes/street.jpg')}
+        style={styles.sceneBg}
+        resizeMode="cover"
+      />
 
-        {/* Баланс игрока */}
-        <View style={styles.balanceRow}>
-          <CoinBadge amount={balance} label="Твой баланс" size="md" />
+      {/* Top HUD */}
+      <View style={styles.topHud}>
+        <TouchableOpacity style={styles.backPill} onPress={onBackToRoom} activeOpacity={0.85}>
+          <IconArrowBack size={16} color="#FFFFFF" />
+          <Text style={styles.backPillText}>В комнату</Text>
+        </TouchableOpacity>
+
+        <View style={styles.titlePill}>
+          <Text style={styles.sceneTitle}>Парк заданий</Text>
         </View>
 
-        {/* Переключатель тем */}
-        <View style={styles.topicsRow}>
-          {topicTabs.map((tab) => {
-            const isActive = selectedTopic === tab.id;
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                style={[styles.topicTab, isActive && styles.topicTabActive]}
-                activeOpacity={0.8}
-                onPress={() => setSelectedTopic(tab.id)}>
-                <Text style={styles.topicTabIcon}>{tab.icon}</Text>
-                <Text
-                  style={[styles.topicTabText, isActive && styles.topicTabTextActive]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.coinPill}>
+          <Image source={require('../../assets/coin.png')} style={styles.coinIcon} />
+          <Text style={styles.coinText}>{coins}</Text>
+        </View>
+      </View>
+
+      {/* Finny in the Park */}
+      <View style={styles.characterLayer} pointerEvents="box-none">
+        <FinnyCharacter />
+      </View>
+
+      {/* Bottom Quest Drawer */}
+      <View style={styles.questDrawer}>
+        {/* Theme Tabs (ТЗ 2.5.8: 3 обязательные темы) */}
+        <View style={styles.themeRow}>
+          <TouchableOpacity
+            style={[styles.themeChip, selectedTheme === 'all' && styles.themeChipActive]}
+            onPress={() => setSelectedTheme('all')}
+          >
+            <Text
+              style={[styles.themeText, selectedTheme === 'all' && styles.themeTextActive]}
+            >
+              Все (6)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeChip, selectedTheme === 'budget' && styles.themeChipActive]}
+            onPress={() => setSelectedTheme('budget')}
+          >
+            <Text
+              style={[styles.themeText, selectedTheme === 'budget' && styles.themeTextActive]}
+            >
+              Бюджет (2)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeChip, selectedTheme === 'savings' && styles.themeChipActive]}
+            onPress={() => setSelectedTheme('savings')}
+          >
+            <Text
+              style={[
+                styles.themeText,
+                selectedTheme === 'savings' && styles.themeTextActive,
+              ]}
+            >
+              Сбережения (2)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeChip, selectedTheme === 'payments' && styles.themeChipActive]}
+            onPress={() => setSelectedTheme('payments')}
+          >
+            <Text
+              style={[
+                styles.themeText,
+                selectedTheme === 'payments' && styles.themeTextActive,
+              ]}
+            >
+              Покупки (2)
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Список заданий */}
-        <View style={styles.tasksList}>
-          {filteredTasks.map((task) => {
-            const isCompleted = completedTaskIds.includes(task.id);
-            const reward = task.options[0]?.rewardCoins || 100;
+        {/* Quest List */}
+        <ScrollView style={styles.questScroll} showsVerticalScrollIndicator={false}>
+          {filteredTasks.map((task) => (
+            <TouchableOpacity
+              key={task.id}
+              style={[styles.questCard, task.completed && styles.questCardDone]}
+              onPress={() => setActiveTask(task)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.questIconBox}>{getThemeIcon(task.theme)}</View>
 
-            return (
-              <View
-                key={task.id}
-                style={[
-                  styles.taskCard,
-                  isCompleted && styles.taskCardCompleted,
-                ]}>
-                <View style={styles.cardHeader}>
-                  <View style={styles.topicBadge}>
-                    <Text style={styles.topicBadgeText}>{task.topicTitle}</Text>
-                  </View>
-
-                  <View style={styles.rewardBadge}>
-                    <Text style={styles.rewardText}>+{reward} 🪙</Text>
-                  </View>
+              <View style={styles.questInfo}>
+                <View style={styles.themeBadge}>
+                  <Text style={styles.themeBadgeText}>{task.themeTitle}</Text>
                 </View>
-
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskStory} numberOfLines={3}>
-                  {task.story}
+                <Text style={styles.questName}>{task.title}</Text>
+                <Text style={styles.questDesc} numberOfLines={2}>
+                  {task.scenario}
                 </Text>
 
-                <View style={styles.cardFooter}>
-                  {isCompleted ? (
-                    <View style={styles.statusDoneBox}>
-                      <Text style={styles.statusDoneText}>Пройдено ✔</Text>
-                    </View>
-                  ) : (
-                    <View style={styles.statusNewBox}>
-                      <Text style={styles.statusNewText}>Новое задание ✨</Text>
-                    </View>
-                  )}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.openBtn,
-                      isCompleted && styles.openBtnReview,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => openTaskModal(task)}>
-                    <Text style={styles.openBtnText}>
-                      {isCompleted ? 'Пройти снова 🔄' : 'Начать выбор 🚀'}
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.rewardTag}>
+                  <Image
+                    source={require('../../assets/coin.png')}
+                    style={styles.rewardCoin}
+                  />
+                  <Text style={styles.rewardValue}>+{task.reward} монет</Text>
                 </View>
               </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+
+              <View
+                style={[
+                  styles.statusCircle,
+                  task.completed ? styles.statusCircleDone : styles.statusCirclePending,
+                ]}
+              >
+                {task.completed ? (
+                  <IconCheck size={16} color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.statusGoText}>Старт</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Interactive Task Scenario Modal */}
+      <TaskModal
+        visible={!!activeTask}
+        task={activeTask}
+        onClose={() => setActiveTask(null)}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: Palette.bgMain,
+    position: 'relative',
+    backgroundColor: '#FAF5EE',
   },
-  scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: 90,
+  sceneBg: {
+    ...StyleSheet.absoluteFill,
+    width: '100%',
+    height: '100%',
   },
-  screenTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Palette.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  screenSubtitle: {
-    fontSize: 14,
-    color: Palette.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  balanceRow: {
+  topHud: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    zIndex: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    justifyContent: 'space-between',
   },
-  topicsRow: {
+  backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryDark,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  backPillText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  titlePill: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sceneTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  coinPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  coinIcon: {
+    width: 20,
+    height: 20,
+  },
+  coinText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  characterLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '16%',
+    bottom: '26%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  questDrawer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxHeight: '44%',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 14,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    zIndex: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  themeRow: {
     flexDirection: 'row',
     gap: 6,
-    marginBottom: Spacing.md,
+    marginBottom: 10,
   },
-  topicTab: {
-    flex: 1,
-    backgroundColor: Palette.bgCard,
-    paddingVertical: 10,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Palette.border,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  topicTabActive: {
-    backgroundColor: Palette.primaryLight,
-    borderColor: Palette.primary,
-  },
-  topicTabIcon: {
-    fontSize: 18,
-    marginBottom: 2,
-  },
-  topicTabText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Palette.textSecondary,
-  },
-  topicTabTextActive: {
-    color: Palette.primaryDark,
-    fontWeight: '800',
-  },
-  tasksList: {
-    gap: Spacing.md,
-  },
-  taskCard: {
-    backgroundColor: Palette.bgCard,
-    borderRadius: Radii.lg,
-    padding: Spacing.md,
-    borderWidth: 1.5,
-    borderColor: Palette.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  taskCardCompleted: {
-    borderColor: Palette.needsLight,
-    backgroundColor: '#F9FCF9',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  topicBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radii.sm,
-  },
-  topicBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  rewardBadge: {
-    backgroundColor: Palette.goldLight,
+  themeChip: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radii.full,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: Palette.gold,
+    borderColor: '#E2E8F0',
   },
-  rewardText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: Palette.goldDark,
+  themeChipActive: {
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
-  taskTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Palette.textPrimary,
+  themeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  themeTextActive: {
+    color: '#FFFFFF',
+  },
+  questScroll: {
+    flex: 1,
+  },
+  questCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    gap: 12,
+    minHeight: 52, // kid accessibility
+  },
+  questCardDone: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  questIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  questInfo: {
+    flex: 1,
+  },
+  themeBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
     marginBottom: 4,
   },
-  taskStory: {
-    fontSize: 13,
-    color: Palette.textSecondary,
-    lineHeight: 19,
-    marginBottom: Spacing.md,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: Palette.border,
-    paddingTop: Spacing.sm,
-  },
-  statusDoneBox: {
-    backgroundColor: Palette.needsLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radii.sm,
-  },
-  statusDoneText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Palette.needsDark,
-  },
-  statusNewBox: {
-    backgroundColor: Palette.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radii.sm,
-  },
-  statusNewText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Palette.primaryDark,
-  },
-  openBtn: {
-    backgroundColor: Palette.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: Radii.md,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  openBtnReview: {
-    backgroundColor: Palette.teal,
-  },
-  openBtnText: {
-    color: Palette.textWhite,
-    fontSize: 13,
+  themeBadgeText: {
+    fontSize: 9,
     fontWeight: '800',
+    color: '#1D4ED8',
+    textTransform: 'uppercase',
+  },
+  questName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  questDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 15,
+    marginBottom: 6,
+  },
+  rewardTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rewardCoin: {
+    width: 14,
+    height: 14,
+  },
+  rewardValue: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#D97706',
+  },
+  statusCircle: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusCircleDone: {
+    backgroundColor: '#16A34A',
+  },
+  statusCirclePending: {
+    backgroundColor: '#2563EB',
+  },
+  statusGoText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

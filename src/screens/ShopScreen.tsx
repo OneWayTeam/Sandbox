@@ -1,485 +1,451 @@
 import React, { useState } from 'react';
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { CoinBadge } from '../components/CoinBadge';
-import { useGame } from '../context/GameContext';
-import { SHOP_ITEMS } from '../content/items';
-import { ShopItem } from '../logic/types';
-import { Palette, Radii, Spacing } from '../theme/colors';
+import { FinnyCharacter } from '../components/FinnyCharacter';
+import { COLORS } from '../theme/colors';
+import {
+  IconArrowBack,
+  IconPalette,
+  IconBrush,
+  IconScarf,
+  IconBeret,
+  IconEasel,
+  IconChair,
+  IconCarrot,
+  IconApple,
+  IconTea,
+  IconPaintTubes,
+} from '../components/GameIcons';
+import { ShopItem } from '../types/gameTypes';
+import { INITIAL_SHOP_ITEMS } from '../state/gameData';
+import { PurchaseModal } from '../components/PurchaseModal';
+import { gameStore } from '../state/gameStore';
 
 interface ShopScreenProps {
-  onGoToTasks: () => void;
+  coins: number;
+  subCategory?: string;
+  onBackToRoom: () => void;
+  onNavigateToTasks?: () => void;
 }
 
-export const ShopScreen: React.FC<ShopScreenProps> = ({ onGoToTasks }) => {
-  const { state, purchaseItem } = useGame();
-  const { balance } = state;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'mandatory' | 'optional'>('all');
-  const [confirmingItem, setConfirmingItem] = useState<ShopItem | null>(null);
+export const ShopScreen: React.FC<ShopScreenProps> = ({
+  coins,
+  subCategory = 'all',
+  onBackToRoom,
+  onNavigateToTasks,
+}) => {
+  const [filterType, setFilterType] = useState<'all' | 'mandatory' | 'discretionary'>('all');
+  const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
 
-  const filteredItems = SHOP_ITEMS.filter((item) => {
-    if (selectedCategory === 'all') return true;
-    return item.category === selectedCategory;
-  });
+  const items = INITIAL_SHOP_ITEMS;
+  const filteredItems =
+    filterType === 'all' ? items : items.filter((i) => i.type === filterType);
 
-  const handleBuyClick = (item: ShopItem) => {
-    setConfirmingItem(item);
+  const getItemIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'carrot':
+        return <IconCarrot size={32} />;
+      case 'apple':
+        return <IconApple size={30} />;
+      case 'brush_care':
+        return <IconBrush size={30} />;
+      case 'tea':
+        return <IconTea size={30} />;
+      case 'palette':
+        return <IconPalette size={30} />;
+      case 'paint_tubes':
+        return <IconPaintTubes size={30} />;
+      case 'scarf':
+        return <IconScarf size={30} />;
+      case 'beret':
+        return <IconBeret size={30} />;
+      case 'easel':
+        return <IconEasel size={30} />;
+      case 'chair':
+        return <IconChair size={30} />;
+      default:
+        return <IconPalette size={30} />;
+    }
   };
 
-  const handleConfirmPurchase = () => {
-    if (!confirmingItem) return;
-    const item = confirmingItem;
-    setConfirmingItem(null);
-    purchaseItem(item);
+  const handleConfirmPurchase = (item: ShopItem) => {
+    const res = gameStore.buyItem(item);
+    if (!res.success) {
+      alert(res.message);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <Text style={styles.screenTitle}>Магазин для Финни 🛒</Text>
-        <Text style={styles.screenSubtitle}>
-          Обязательный корм и весёлые игрушки для питомца
-        </Text>
+    <View style={styles.container}>
+      {/* 3D Scene Background */}
+      <Image
+        source={require('../../assets/scenes/shop.jpg')}
+        style={styles.sceneBg}
+        resizeMode="cover"
+      />
 
-        {/* Доступный баланс */}
-        <View style={styles.balanceRow}>
-          <CoinBadge amount={balance} label="Твой баланс" size="lg" />
+      {/* Top HUD */}
+      <View style={styles.topHud}>
+        <TouchableOpacity style={styles.backPill} onPress={onBackToRoom} activeOpacity={0.85}>
+          <IconArrowBack size={16} color="#FFFFFF" />
+          <Text style={styles.backPillText}>В комнату</Text>
+        </TouchableOpacity>
+
+        <View style={styles.titlePill}>
+          <Text style={styles.sceneTitle}>Лавка Финни</Text>
         </View>
 
-        {/* Фильтр категорий */}
-        <View style={styles.filterRow}>
+        <View style={styles.coinPill}>
+          <Image source={require('../../assets/coin.png')} style={styles.coinIcon} />
+          <Text style={styles.coinText}>{coins}</Text>
+        </View>
+      </View>
+
+      {/* Finny in the Store (Middle Layer) */}
+      <View style={styles.characterLayer} pointerEvents="box-none">
+        <FinnyCharacter />
+      </View>
+
+      {/* Bottom Catalog Drawer */}
+      <View style={styles.catalogDrawer}>
+        {/* Category Tabs (ТЗ 2.5.6: Обязательные vs Необязательные) */}
+        <View style={styles.catRow}>
           <TouchableOpacity
-            style={[
-              styles.filterBtn,
-              selectedCategory === 'all' && styles.filterBtnActive,
-            ]}
-            onPress={() => setSelectedCategory('all')}>
+            style={[styles.catChip, filterType === 'all' && styles.catChipActive]}
+            onPress={() => setFilterType('all')}
+          >
+            <Text style={[styles.catText, filterType === 'all' && styles.catTextActive]}>
+              Все (10)
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.catChip, filterType === 'mandatory' && styles.catChipActiveMandatory]}
+            onPress={() => setFilterType('mandatory')}
+          >
             <Text
               style={[
-                styles.filterText,
-                selectedCategory === 'all' && styles.filterTextActive,
-              ]}>
-              Все товары
+                styles.catText,
+                filterType === 'mandatory' && styles.catTextActiveMandatory,
+              ]}
+            >
+              Обязательные (еда/уход)
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
-              styles.filterBtn,
-              selectedCategory === 'mandatory' && styles.filterBtnActiveNeeds,
+              styles.catChip,
+              filterType === 'discretionary' && styles.catChipActiveDiscretionary,
             ]}
-            onPress={() => setSelectedCategory('mandatory')}>
+            onPress={() => setFilterType('discretionary')}
+          >
             <Text
               style={[
-                styles.filterText,
-                selectedCategory === 'mandatory' && styles.filterTextActiveNeeds,
-              ]}>
-              🍏 Нужно (Обязательное)
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterBtn,
-              selectedCategory === 'optional' && styles.filterBtnActiveWants,
-            ]}
-            onPress={() => setSelectedCategory('optional')}>
-            <Text
-              style={[
-                styles.filterText,
-                selectedCategory === 'optional' && styles.filterTextActiveWants,
-              ]}>
-              🎈 Хочу (Желания)
+                styles.catText,
+                filterType === 'discretionary' && styles.catTextActiveDiscretionary,
+              ]}
+            >
+              Желания (радость)
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Список товаров */}
-        <View style={styles.itemsGrid}>
-          {filteredItems.map((item) => {
-            const isNeeds = item.category === 'mandatory';
-            const canBuy = balance >= item.price;
-
-            return (
+        {/* Items List */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.itemScroll}
+        >
+          {filteredItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.itemCard}
+              onPress={() => setSelectedItem(item)}
+              activeOpacity={0.85}
+            >
+              {/* Type pill */}
               <View
-                key={item.id}
                 style={[
-                  styles.itemCard,
-                  { borderColor: isNeeds ? Palette.needsLight : Palette.wantsLight },
-                ]}>
-                {/* Бейдж категории */}
-                <View
+                  styles.itemTypeBadge,
+                  item.type === 'mandatory'
+                    ? styles.badgeMandatory
+                    : styles.badgeDiscretionary,
+                ]}
+              >
+                <Text
                   style={[
-                    styles.categoryBadge,
-                    { backgroundColor: isNeeds ? Palette.needsLight : Palette.wantsLight },
-                  ]}>
-                  <Text
-                    style={[
-                      styles.categoryBadgeText,
-                      { color: isNeeds ? Palette.needsDark : Palette.wantsDark },
-                    ]}>
-                    {isNeeds ? '🍏 Нужно' : '🎈 Хочу'}
-                  </Text>
-                </View>
-
-                {/* Иконка товара */}
-                <View style={styles.itemIconBox}>
-                  <Text style={{ fontSize: 36 }}>{item.icon}</Text>
-                </View>
-
-                {/* Название и описание */}
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDescription} numberOfLines={2}>
-                  {item.description}
+                    styles.itemTypeBadgeText,
+                    item.type === 'mandatory'
+                      ? styles.badgeTextMandatory
+                      : styles.badgeTextDiscretionary,
+                  ]}
+                >
+                  {item.type === 'mandatory' ? 'Обязательное' : 'Желание'}
                 </Text>
-
-                {/* Эффект на питомца */}
-                <View style={styles.effectsRow}>
-                  {item.hungerBonus > 0 && (
-                    <Text style={styles.effectTag}>🍗 +{item.hungerBonus}%</Text>
-                  )}
-                  {item.moodBonus > 0 && (
-                    <Text style={styles.effectTag}>🎮 +{item.moodBonus}%</Text>
-                  )}
-                  {item.careBonus > 0 && (
-                    <Text style={styles.effectTag}>🧼 +{item.careBonus}%</Text>
-                  )}
-                </View>
-
-                {/* Цена и кнопка покупки */}
-                <View style={styles.itemFooter}>
-                  <Text style={styles.itemPrice}>{item.price} 🪙</Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.buyButton,
-                      !canBuy && styles.buyButtonShort,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => handleBuyClick(item)}>
-                    <Text style={styles.buyButtonText}>
-                      {canBuy ? 'Купить' : 'Купить (не хватает)'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
               </View>
-            );
-          })}
-        </View>
 
-        {/* Модальное подтверждение покупки */}
-        {confirmingItem && (
-          <Modal transparent animationType="fade" visible={!!confirmingItem}>
-            <View style={styles.modalBackdrop}>
-              <View style={styles.modalCard}>
-                <Text style={{ fontSize: 44, marginBottom: 8 }}>{confirmingItem.icon}</Text>
-                <Text style={styles.modalTitle}>Подтверди покупку</Text>
-                <Text style={styles.modalItemName}>{confirmingItem.name}</Text>
+              <View style={styles.iconCircle}>{getItemIcon(item.iconName)}</View>
 
-                <View style={styles.modalInfoBox}>
-                  <View style={styles.modalRow}>
-                    <Text style={styles.modalRowLabel}>Стоимость:</Text>
-                    <Text style={styles.modalRowVal}>{confirmingItem.price} 🪙</Text>
-                  </View>
-                  <View style={styles.modalRow}>
-                    <Text style={styles.modalRowLabel}>Категория:</Text>
-                    <Text
-                      style={[
-                        styles.modalRowVal,
-                        {
-                          color:
-                            confirmingItem.category === 'mandatory'
-                              ? Palette.needsDark
-                              : Palette.wantsDark,
-                        },
-                      ]}>
-                      {confirmingItem.categoryName}
-                    </Text>
-                  </View>
-                  <View style={styles.modalRow}>
-                    <Text style={styles.modalRowLabel}>Останется монет:</Text>
-                    <Text style={[styles.modalRowVal, { color: Palette.primaryDark }]}>
-                      {Math.max(0, balance - confirmingItem.price)} 🪙
-                    </Text>
-                  </View>
-                </View>
+              <Text style={styles.itemTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
 
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={styles.modalConfirmBtn}
-                    activeOpacity={0.85}
-                    onPress={handleConfirmPurchase}>
-                    <Text style={styles.modalConfirmBtnText}>Да, покупаем! 🛍️</Text>
-                  </TouchableOpacity>
+              {/* Impact hint */}
+              <Text style={styles.impactHint}>
+                {item.satietyBoost > 0
+                  ? `+${item.satietyBoost}% сытости`
+                  : `+${item.moodBoost}% радости`}
+              </Text>
 
-                  <TouchableOpacity
-                    style={styles.modalCancelBtn}
-                    activeOpacity={0.7}
-                    onPress={() => setConfirmingItem(null)}>
-                    <Text style={styles.modalCancelBtnText}>Отмена</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.priceRow}>
+                <Image
+                  source={require('../../assets/coin.png')}
+                  style={styles.smallCoin}
+                />
+                <Text style={styles.priceText}>{item.price}</Text>
               </View>
-            </View>
-          </Modal>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Interactive Purchase & Shortage Modal */}
+      <PurchaseModal
+        visible={!!selectedItem}
+        item={selectedItem}
+        coins={coins}
+        onConfirm={handleConfirmPurchase}
+        onClose={() => setSelectedItem(null)}
+        onNavigateToTasks={onNavigateToTasks}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: Palette.bgMain,
-  },
-  scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: 90,
-  },
-  screenTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: Palette.textPrimary,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  screenSubtitle: {
-    fontSize: 14,
-    color: Palette.textSecondary,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  balanceRow: {
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: Spacing.md,
-  },
-  filterBtn: {
-    flex: 1,
-    backgroundColor: Palette.bgCard,
-    paddingVertical: 10,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Palette.border,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  filterBtnActive: {
-    borderColor: Palette.primary,
-    backgroundColor: Palette.primaryLight,
-  },
-  filterBtnActiveNeeds: {
-    borderColor: Palette.needs,
-    backgroundColor: Palette.needsLight,
-  },
-  filterBtnActiveWants: {
-    borderColor: Palette.wants,
-    backgroundColor: Palette.wantsLight,
-  },
-  filterText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Palette.textSecondary,
-    textAlign: 'center',
-  },
-  filterTextActive: {
-    color: Palette.primaryDark,
-    fontWeight: '800',
-  },
-  filterTextActiveNeeds: {
-    color: Palette.needsDark,
-    fontWeight: '800',
-  },
-  filterTextActiveWants: {
-    color: Palette.wantsDark,
-    fontWeight: '800',
-  },
-  itemsGrid: {
-    gap: Spacing.md,
-  },
-  itemCard: {
-    backgroundColor: Palette.bgCard,
-    borderRadius: Radii.lg,
-    padding: Spacing.md,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
     position: 'relative',
+    backgroundColor: '#FAF5EE',
   },
-  categoryBadge: {
+  sceneBg: {
+    ...StyleSheet.absoluteFill,
+    width: '100%',
+    height: '100%',
+  },
+  topHud: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radii.full,
+    top: 16,
+    left: 16,
+    right: 16,
+    zIndex: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  categoryBadgeText: {
-    fontSize: 11,
+  backPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryDark,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  backPillText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  titlePill: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sceneTitle: {
+    fontSize: 14,
     fontWeight: '800',
+    color: '#0F172A',
   },
-  itemIconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Palette.bgCardSubtle,
+  coinPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  coinIcon: {
+    width: 20,
+    height: 20,
+  },
+  coinText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  characterLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '16%',
+    bottom: '26%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    zIndex: 10,
   },
-  itemName: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Palette.textPrimary,
-    marginBottom: 4,
-    maxWidth: '75%',
+  catalogDrawer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 14,
+    paddingBottom: 20,
+    zIndex: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  itemDescription: {
-    fontSize: 13,
-    color: Palette.textSecondary,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  effectsRow: {
+  catRow: {
     flexDirection: 'row',
+    paddingHorizontal: 16,
     gap: 8,
     marginBottom: 12,
   },
-  effectTag: {
-    fontSize: 12,
+  catChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  catChipActive: {
+    backgroundColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
+  },
+  catChipActiveMandatory: {
+    backgroundColor: '#16A34A',
+    borderColor: '#15803D',
+  },
+  catChipActiveDiscretionary: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#D97706',
+  },
+  catText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: Palette.primaryDark,
-    backgroundColor: Palette.primaryLight,
+    color: '#475569',
+  },
+  catTextActive: {
+    color: '#FFFFFF',
+  },
+  catTextActiveMandatory: {
+    color: '#FFFFFF',
+  },
+  catTextActiveDiscretionary: {
+    color: '#FFFFFF',
+  },
+  itemScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  itemCard: {
+    width: 130,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  itemTypeBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: Radii.sm,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
   },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: Palette.border,
-    paddingTop: 10,
+  badgeMandatory: {
+    backgroundColor: '#DCFCE7',
   },
-  itemPrice: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: Palette.goldDark,
+  badgeDiscretionary: {
+    backgroundColor: '#FEF3C7',
   },
-  buyButton: {
-    backgroundColor: Palette.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: Radii.md,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buyButtonShort: {
-    backgroundColor: Palette.warning,
-  },
-  buyButtonText: {
-    color: Palette.textWhite,
-    fontSize: 13,
+  itemTypeBadgeText: {
+    fontSize: 9,
     fontWeight: '800',
   },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+  badgeTextMandatory: {
+    color: '#15803D',
+  },
+  badgeTextDiscretionary: {
+    color: '#B45309',
+  },
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Spacing.lg,
+    marginBottom: 8,
   },
-  modalCard: {
-    backgroundColor: Palette.bgCard,
-    borderRadius: Radii.xl,
-    padding: Spacing.xl,
-    width: '100%',
-    maxWidth: 380,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Palette.textPrimary,
-    marginBottom: 4,
-  },
-  modalItemName: {
-    fontSize: 16,
+  itemTitle: {
+    fontSize: 12,
     fontWeight: '700',
-    color: Palette.primary,
-    marginBottom: Spacing.md,
+    color: '#0F172A',
     textAlign: 'center',
+    marginBottom: 2,
   },
-  modalInfoBox: {
-    width: '100%',
-    backgroundColor: Palette.bgCardSubtle,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-    gap: 8,
-  },
-  modalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalRowLabel: {
-    fontSize: 13,
-    color: Palette.textSecondary,
-    fontWeight: '600',
-  },
-  modalRowVal: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Palette.textPrimary,
-  },
-  modalButtons: {
-    width: '100%',
-    gap: Spacing.sm,
-  },
-  modalConfirmBtn: {
-    backgroundColor: Palette.primary,
-    paddingVertical: 14,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-  modalConfirmBtnText: {
-    color: Palette.textWhite,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  modalCancelBtn: {
-    backgroundColor: Palette.bgCardSubtle,
-    paddingVertical: 12,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    minHeight: 48,
-    justifyContent: 'center',
-  },
-  modalCancelBtnText: {
-    color: Palette.textSecondary,
-    fontSize: 14,
+  impactHint: {
+    fontSize: 10,
     fontWeight: '700',
+    color: '#16A34A',
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  smallCoin: {
+    width: 14,
+    height: 14,
+  },
+  priceText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0F172A',
   },
 });

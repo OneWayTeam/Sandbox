@@ -1,56 +1,56 @@
-# Welcome to your Expo app 👋
+# Мобильное приложение «Питомец Финни»
+> Игровой сервис для формирования базовых финансовых навыков у детей 7–11 лет.  
+> Разработано в рамках хакатона «Лидеры цифровой трансформации 2026» по заказу Департамента финансов города Москвы.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+---
 
-## Get started
+## 📌 О проекте
+«Питомец Финни» — интерактивный обучающий тренажер в формате виртуального питомца (кролик Финни), где ребенок учится грамотно распоряжаться карманными деньгами, планировать бюджет и формировать целевые сбережения без риска и без реальных платежей.
 
-1. Install dependencies
+Проект полностью реализует Единый сквозной сценарий работы (Приложение А ТЗ, шаги 1–12) и требования раздела 2.5 и 2.6 ТЗ.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🚀 Основные возможности
+1. **Кастомизация питомца (≥9 комбинаций)**: 27 уникальных вариантов 3D-гардероба (вязаные свитера, берет французского художника, очки мудреца, памятные значки).
+2. **Игровой бюджет (План vs Факт)**: распределение монет по трем ключевым направлениям (Обязательные расходы, Желания, Накопления в копилку) до начала периода и сравнение с фактическими тратами.
+3. **Каталог покупок (10 позиций)**: 
+   - *Обязательные* (еда и уход, влияющие на сытость питомца)
+   - *Необязательные* (одежда, краски, мебель, повышающие настроение)
+   - Дружелюбная защита от отрицательного баланса с объяснением вариантов решения.
+4. **Целевые накопления и Золотой сейф (3 цели)**:
+   - Набор масляных красок (160 монет)
+   - Деревянный мольберт (250 монет)
+   - Первая выставка картин (400 монет)
+   - Расчет срока достижения цели и безопасное подтверждение снятия средств с предупреждением об изменении срока.
+5. **Финансовые задания (6 заданий по 3 темам)**:
+   - Планирование бюджета
+   - Формирование сбережений
+   - Платежи и покупки
+   - Интерактивный выбор и понятные ребенку причинно-следственные объяснения.
+6. **Рост питомца (3 стадии)**: Малыш-художник → Юный мастер → Мастер-иллюстратор (в берете с палитрой красок и кистью).
+7. **Раздел для родителей и экспертов**:
+   - Математический защитный барьер для взрослого (`7 × 8 = ?`)
+   - Образовательные цели по Единой рамке компетенций
+   - Справочник финансовых понятий
+   - Поощрительные баллы от родителей
+   - Быстрый сброс тестового профиля для экспертов жюри.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🛠 Технологический стек
+- **Core**: React Native (Expo SDK 52+ / 57)
+- **UI & Graphics**: React Native Animated + Custom Frame Compositing + React Native SVG
+- **Хранение данных**: AsyncStorage (локальное хранилище без сбора ПДн)
+- **Платформы**: Android / Web
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+## 📦 Быстрый старт
 ```bash
-npm run reset-project
+# Установка зависимостей
+npm install
+
+# Запуск локального сервера разработки
+npx expo start
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
