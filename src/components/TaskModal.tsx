@@ -16,6 +16,7 @@ import {
   IconApple,
   IconTarget,
   IconPalette,
+  IconLightbulb,
 } from './GameIcons';
 import { FinancialTask, TaskOption } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
@@ -34,12 +35,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
     reward: number;
   } | null>(null);
 
+  const [isSelecting, setIsSelecting] = useState(false);
+
   if (!task) return null;
 
   const handleSelectOption = (option: TaskOption) => {
+    if (isSelecting || selectedOption || feedback) return;
+    setIsSelecting(true);
     setSelectedOption(option);
     const res = gameStore.completeTask(task.id, option.id);
     setFeedback(res);
+    setIsSelecting(false);
   };
 
   const handleFinish = () => {
@@ -72,9 +78,40 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
 
           <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             {/* Title & Scenario */}
-            <Text style={styles.taskTitle}>{task.title}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.taskTitle}>{task.title}</Text>
+              {(task as any).difficulty && (
+                <View
+                  style={[
+                    styles.difficultyTag,
+                    (task as any).difficulty === 'easy'
+                      ? styles.diffEasy
+                      : (task as any).difficulty === 'medium'
+                      ? styles.diffMed
+                      : styles.diffHard,
+                  ]}
+                >
+                  <Text style={styles.difficultyText}>
+                    {(task as any).difficulty === 'easy'
+                      ? '⭐ Начальный'
+                      : (task as any).difficulty === 'medium'
+                      ? '⭐⭐ Средний'
+                      : '⭐⭐⭐ Мастер'}
+                  </Text>
+                </View>
+              )}
+            </View>
+
             <View style={styles.scenarioCard}>
-              <Text style={styles.scenarioText}>{task.scenario}</Text>
+              <Text style={styles.scenarioText}>{task.situation || task.scenario}</Text>
+
+              {/* Available Resources badge */}
+              {(task as any).availableResources && (
+                <View style={styles.resourcesBox}>
+                  <Text style={styles.resourcesLabel}>Доступные ресурсы:</Text>
+                  <Text style={styles.resourcesText}>{(task as any).availableResources}</Text>
+                </View>
+              )}
             </View>
 
             {/* Options or Feedback */}
@@ -84,8 +121,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                 {task.options.map((option, idx) => (
                   <TouchableOpacity
                     key={option.id}
-                    style={styles.optionBtn}
+                    style={[styles.optionBtn, isSelecting && { opacity: 0.6 }]}
                     onPress={() => handleSelectOption(option)}
+                    disabled={isSelecting || !!selectedOption || !!feedback}
                     activeOpacity={0.85}
                   >
                     <View style={styles.optionBadge}>
@@ -113,7 +151,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                       </View>
                     ) : (
                       <View style={styles.warningIconCircle}>
-                        <Text style={styles.warningSign}>💡</Text>
+                        <IconLightbulb size={18} color="#B45309" />
                       </View>
                     )}
                     <Text
@@ -146,7 +184,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                     </View>
                   </View>
 
-                  {!feedback.isCorrect && (
+                  {/* Next Step Recommendation */}
+                  {(selectedOption as any)?.consequence?.nextStepRecommendation ? (
+                    <View style={styles.nextStepBox}>
+                      <Text style={styles.nextStepTitle}>Следующий шаг:</Text>
+                      <Text style={styles.nextStepText}>
+                        {(selectedOption as any).consequence.nextStepRecommendation}
+                      </Text>
+                    </View>
+                  ) : !feedback.isCorrect ? (
                     <View style={styles.recoveryTipBox}>
                       <Text style={styles.recoveryTipTitle}>Как исправить ситуацию:</Text>
                       <Text style={styles.recoveryTipText}>
@@ -154,7 +200,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                         выполнить другое задание в парке или временно отложить необязательные покупки.
                       </Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
 
                 <TouchableOpacity
@@ -394,6 +440,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#78350F',
     lineHeight: 17,
+  },
+  nextStepBox: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 8,
+  },
+  nextStepTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    marginBottom: 4,
+  },
+  nextStepText: {
+    fontSize: 12,
+    color: '#1E3A8A',
+    lineHeight: 18,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  difficultyTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  diffEasy: {
+    backgroundColor: '#DCFCE7',
+  },
+  diffMed: {
+    backgroundColor: '#FEF3C7',
+  },
+  diffHard: {
+    backgroundColor: '#FEE2E2',
+  },
+  difficultyText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  resourcesBox: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  resourcesLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  resourcesText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   continueBtn: {
     backgroundColor: COLORS.primaryDark,

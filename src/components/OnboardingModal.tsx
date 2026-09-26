@@ -57,7 +57,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       accessory,
       hat,
     };
-    gameStore.updateProfile(playerName.trim() || 'Юный финансист', petName.trim() || 'Финни', finalAppearance);
+    gameStore.completeOnboarding(playerName.trim() || 'Юный финансист', petName.trim() || 'Финни', finalAppearance);
     if (onComplete) onComplete();
     onClose();
   };
@@ -282,10 +282,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.combinationNotice}>
-                  <Text style={styles.combinationNoticeText}>
-                    Все варианты созданы в оригинальном 3D стиле Финни
-                  </Text>
+                <View style={styles.starterBudgetNotice}>
+                  <Image source={require('../../assets/coin.png')} style={styles.starterCoin} />
+                  <View style={styles.starterTextCol}>
+                    <Text style={styles.starterTitle}>Стартовый капитал на 1-й период:</Text>
+                    <Text style={styles.starterDesc}>+25 игровых монет на первые важные решения!</Text>
+                  </View>
                 </View>
 
                 <View style={styles.buttonRow}>
@@ -303,7 +305,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     activeOpacity={0.85}
                   >
                     <IconCheck size={18} color="#FFFFFF" />
-                    <Text style={styles.submitBtnText}>Сохранить образ</Text>
+                    <Text style={styles.submitBtnText}>Начать игру (+25 монет) →</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -545,19 +547,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#334155',
   },
-  combinationNotice: {
-    backgroundColor: '#F0FDF4',
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
+  starterBudgetNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    gap: 10,
     marginBottom: 16,
   },
-  combinationNoticeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#166534',
-    textAlign: 'center',
+  starterCoin: {
+    width: 32,
+    height: 32,
+  },
+  starterTextCol: {
+    flex: 1,
+  },
+  starterTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#92400E',
+    textTransform: 'uppercase',
+  },
+  starterDesc: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#78350F',
+    marginTop: 1,
   },
   buttonRow: {
     flexDirection: 'row',

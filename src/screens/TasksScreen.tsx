@@ -17,13 +17,17 @@ import {
   IconPalette,
   IconTarget,
   IconApple,
+  IconTrophy,
+  IconMedal,
 } from '../components/GameIcons';
-import { FinancialTask, TaskTheme } from '../types/gameTypes';
+import { FinancialTask, TaskTheme, GameAchievement } from '../types/gameTypes';
 import { TaskModal } from '../components/TaskModal';
+import { gameStore } from '../state/gameStore';
 
 interface TasksScreenProps {
   coins: number;
   tasks: FinancialTask[];
+  subCategory?: string;
   onBackToRoom: () => void;
 }
 
@@ -32,13 +36,86 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const TasksScreen: React.FC<TasksScreenProps> = ({
   coins,
   tasks,
+  subCategory = 'all',
   onBackToRoom,
 }) => {
-  const [selectedTheme, setSelectedTheme] = useState<'all' | TaskTheme>('all');
+  const [selectedTheme, setSelectedTheme] = useState<'all' | TaskTheme | 'trophies'>('all');
   const [activeTask, setActiveTask] = useState<FinancialTask | null>(null);
 
+  React.useEffect(() => {
+    if (subCategory === 'trophies') {
+      setSelectedTheme('trophies');
+    } else if (subCategory === 'budget') {
+      setSelectedTheme('budget');
+    } else if (subCategory === 'savings') {
+      setSelectedTheme('savings');
+    } else if (subCategory === 'payments') {
+      setSelectedTheme('payments');
+    } else if (subCategory === 'quests' || subCategory === 'all') {
+      setSelectedTheme('all');
+    }
+  }, [subCategory]);
+
+  const state = gameStore.getState();
+  const activeGoal = state.goals.find((g) => g.id === state.activeGoalId) || state.goals[0];
+
+  const achievements: GameAchievement[] = [
+    {
+      id: 'ach_budget',
+      title: 'Первый личный бюджет',
+      description: 'Утверди план распределения монет на текущий период',
+      iconName: 'palette',
+      unlocked: state.budgetPlan.isApproved,
+      rewardCoins: 5,
+    },
+    {
+      id: 'ach_save',
+      title: 'Бережливый кролик',
+      description: 'Отложи первые монеты в золотой сейф мечты',
+      iconName: 'target',
+      unlocked: state.savings > 0 || (activeGoal && activeGoal.savedAmount > 0),
+      rewardCoins: 5,
+    },
+    {
+      id: 'ach_care',
+      title: 'Заботливый друг',
+      description: 'Купи обязательную здоровую еду или щётку для Финни',
+      iconName: 'apple',
+      unlocked: state.budgetFact.mandatory > 0,
+      rewardCoins: 5,
+    },
+    {
+      id: 'ach_tasks',
+      title: 'Финансовый эрудит',
+      description: 'Реши не менее 3 обучающих ситуаций в парке заданий',
+      iconName: 'star',
+      unlocked: tasks.filter((t) => t.completed).length >= 3,
+      rewardCoins: 10,
+    },
+    {
+      id: 'ach_half_goal',
+      title: 'На полпути к мечте',
+      description: 'Накопи 50% и более от стоимости главной цели',
+      iconName: 'trophy',
+      unlocked: activeGoal ? activeGoal.savedAmount >= activeGoal.totalCost * 0.5 : false,
+      rewardCoins: 15,
+    },
+    {
+      id: 'ach_master',
+      title: 'Мастер-иллюстратор',
+      description: 'Помоги Финни вырасти до 3-й стадии финансовой зрелости',
+      iconName: 'medal',
+      unlocked: state.profile.stage === 3,
+      rewardCoins: 20,
+    },
+  ];
+
   const filteredTasks =
-    selectedTheme === 'all' ? tasks : tasks.filter((t) => t.theme === selectedTheme);
+    selectedTheme === 'all'
+      ? tasks
+      : selectedTheme === 'trophies'
+      ? []
+      : tasks.filter((t) => t.theme === selectedTheme);
 
   const getThemeIcon = (theme: TaskTheme) => {
     switch (theme) {
@@ -84,8 +161,12 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
 
       {/* Bottom Quest Drawer */}
       <View style={styles.questDrawer}>
-        {/* Theme Tabs (ТЗ 2.5.8: 3 обязательные темы) */}
-        <View style={styles.themeRow}>
+        {/* Theme Tabs (ТЗ 2.5.8: 3 обязательные темы + Трофеи) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.themeRow}
+        >
           <TouchableOpacity
             style={[styles.themeChip, selectedTheme === 'all' && styles.themeChipActive]}
             onPress={() => setSelectedTheme('all')}
@@ -135,52 +216,118 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
               Покупки (2)
             </Text>
           </TouchableOpacity>
-        </View>
 
-        {/* Quest List */}
-        <ScrollView style={styles.questScroll} showsVerticalScrollIndicator={false}>
-          {filteredTasks.map((task) => (
-            <TouchableOpacity
-              key={task.id}
-              style={[styles.questCard, task.completed && styles.questCardDone]}
-              onPress={() => setActiveTask(task)}
-              activeOpacity={0.85}
+          <TouchableOpacity
+            style={[styles.themeChip, selectedTheme === 'trophies' && styles.themeChipActiveTrophies]}
+            onPress={() => setSelectedTheme('trophies')}
+          >
+            <Text
+              style={[
+                styles.themeText,
+                selectedTheme === 'trophies' && styles.themeTextActive,
+              ]}
             >
-              <View style={styles.questIconBox}>{getThemeIcon(task.theme)}</View>
-
-              <View style={styles.questInfo}>
-                <View style={styles.themeBadge}>
-                  <Text style={styles.themeBadgeText}>{task.themeTitle}</Text>
-                </View>
-                <Text style={styles.questName}>{task.title}</Text>
-                <Text style={styles.questDesc} numberOfLines={2}>
-                  {task.scenario}
-                </Text>
-
-                <View style={styles.rewardTag}>
-                  <Image
-                    source={require('../../assets/coin.png')}
-                    style={styles.rewardCoin}
-                  />
-                  <Text style={styles.rewardValue}>+{task.reward} монет</Text>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.statusCircle,
-                  task.completed ? styles.statusCircleDone : styles.statusCirclePending,
-                ]}
-              >
-                {task.completed ? (
-                  <IconCheck size={16} color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.statusGoText}>Старт</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
+              Трофеи (6)
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
+
+        {/* Content List: Tasks or Trophies */}
+        {selectedTheme === 'trophies' ? (
+          <ScrollView style={styles.questScroll} showsVerticalScrollIndicator={false}>
+            {achievements.map((ach) => (
+              <View
+                key={ach.id}
+                style={[styles.trophyCard, ach.unlocked && styles.trophyCardUnlocked]}
+              >
+                <View style={styles.trophyIconBox}>
+                  {ach.iconName === 'medal' ? (
+                    <IconMedal size={24} />
+                  ) : ach.iconName === 'trophy' ? (
+                    <IconTrophy size={24} />
+                  ) : ach.iconName === 'palette' ? (
+                    <IconPalette size={24} />
+                  ) : ach.iconName === 'target' ? (
+                    <IconTarget size={24} color="#7C3AED" />
+                  ) : ach.iconName === 'apple' ? (
+                    <IconApple size={24} />
+                  ) : (
+                    <IconSparkleStar size={24} />
+                  )}
+                </View>
+
+                <View style={styles.questInfo}>
+                  <Text style={styles.questName}>{ach.title}</Text>
+                  <Text style={styles.questDesc}>{ach.description}</Text>
+                  <View style={styles.rewardTag}>
+                    <Image
+                      source={require('../../assets/coin.png')}
+                      style={styles.rewardCoin}
+                    />
+                    <Text style={styles.rewardValue}>+{ach.rewardCoins} монет за достижение</Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.trophyBadge,
+                    ach.unlocked ? styles.trophyBadgeOk : styles.trophyBadgeProgress,
+                  ]}
+                >
+                  {ach.unlocked ? (
+                    <IconCheck size={14} color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.trophyBadgeText}>В процессе</Text>
+                  )}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <ScrollView style={styles.questScroll} showsVerticalScrollIndicator={false}>
+            {filteredTasks.map((task) => (
+              <TouchableOpacity
+                key={task.id}
+                style={[styles.questCard, task.completed && styles.questCardDone]}
+                onPress={() => setActiveTask(task)}
+                activeOpacity={0.85}
+              >
+                <View style={styles.questIconBox}>{getThemeIcon(task.theme)}</View>
+
+                <View style={styles.questInfo}>
+                  <View style={styles.themeBadge}>
+                    <Text style={styles.themeBadgeText}>{task.themeTitle}</Text>
+                  </View>
+                  <Text style={styles.questName}>{task.title}</Text>
+                  <Text style={styles.questDesc} numberOfLines={2}>
+                    {task.scenario}
+                  </Text>
+
+                  <View style={styles.rewardTag}>
+                    <Image
+                      source={require('../../assets/coin.png')}
+                      style={styles.rewardCoin}
+                    />
+                    <Text style={styles.rewardValue}>+{task.reward} монет</Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.statusCircle,
+                    task.completed ? styles.statusCircleDone : styles.statusCirclePending,
+                  ]}
+                >
+                  {task.completed ? (
+                    <IconCheck size={16} color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.statusGoText}>Старт</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {/* Interactive Task Scenario Modal */}
@@ -402,5 +549,52 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  themeChipActiveTrophies: {
+    backgroundColor: '#D97706',
+    borderColor: '#B45309',
+  },
+  trophyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  trophyCardUnlocked: {
+    backgroundColor: '#FEFDF8',
+    borderColor: '#FDE68A',
+  },
+  trophyIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFBEB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  trophyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trophyBadgeOk: {
+    backgroundColor: '#16A34A',
+  },
+  trophyBadgeProgress: {
+    backgroundColor: '#E2E8F0',
+  },
+  trophyBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
   },
 });

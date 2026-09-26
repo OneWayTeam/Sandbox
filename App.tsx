@@ -7,6 +7,7 @@ import {
   Platform,
   useWindowDimensions,
   Animated,
+  BackHandler,
 } from 'react-native';
 import { RoomScreen } from './src/screens/RoomScreen';
 import { PlanScreen } from './src/screens/PlanScreen';
@@ -17,8 +18,6 @@ import { BottomTabBar, GameLocation } from './src/components/BottomTabBar';
 import {
   CollectModal,
   ScratchModal,
-  SettingsModal,
-  GoalModal,
 } from './src/components/Modals';
 import { ParentZoneModal } from './src/components/ParentZoneModal';
 import { OnboardingModal } from './src/components/OnboardingModal';
@@ -50,9 +49,62 @@ export default function App() {
   const [collectModalVisible, setCollectModalVisible] = useState(false);
   const [scratchModalVisible, setScratchModalVisible] = useState(false);
   const [parentZoneVisible, setParentZoneVisible] = useState(false);
-  const [onboardingVisible, setOnboardingVisible] = useState(false);
+  const [onboardingVisible, setOnboardingVisible] = useState(!gameState.profile.onboardingCompleted);
   const [activeTaskModal, setActiveTaskModal] = useState<FinancialTask | null>(null);
   const [periodSummary, setPeriodSummary] = useState<PeriodSummary | null>(null);
+
+  useEffect(() => {
+    if (!gameState.profile.onboardingCompleted) {
+      setOnboardingVisible(true);
+    }
+  }, [gameState.profile.onboardingCompleted]);
+
+  // Android Hardware Back Button Handling
+  useEffect(() => {
+    const onBackPress = () => {
+      if (periodSummary) {
+        setPeriodSummary(null);
+        return true;
+      }
+      if (activeTaskModal) {
+        setActiveTaskModal(null);
+        return true;
+      }
+      if (collectModalVisible) {
+        setCollectModalVisible(false);
+        return true;
+      }
+      if (scratchModalVisible) {
+        setScratchModalVisible(false);
+        return true;
+      }
+      if (parentZoneVisible) {
+        setParentZoneVisible(false);
+        return true;
+      }
+      if (onboardingVisible && gameState.profile.onboardingCompleted) {
+        setOnboardingVisible(false);
+        return true;
+      }
+      if (currentLocation !== 'room') {
+        navigateTo('room');
+        return true;
+      }
+      return false;
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [
+    periodSummary,
+    activeTaskModal,
+    collectModalVisible,
+    scratchModalVisible,
+    parentZoneVisible,
+    onboardingVisible,
+    gameState.profile.onboardingCompleted,
+    currentLocation,
+  ]);
 
   // Smooth Location Crossfade
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -76,11 +128,8 @@ export default function App() {
   };
 
   // Economy Handlers
-  const handleClaimDailyReward = (amount: number) => {
-    const st = gameStore.getState();
-    st.coins += amount;
-    st.petState.statusText = `Получен ежедневный доход: +${amount} монет!`;
-    gameStore.save();
+  const handleClaimDailyReward = (amount: number, title?: string) => {
+    gameStore.claimDailyReward(amount, title || 'Ежедневная награда');
   };
 
   const handleDepositToGoal = (amount: number) => {
@@ -190,6 +239,7 @@ export default function App() {
                 coins={gameState.coins}
                 goals={gameState.goals}
                 activeGoalId={gameState.activeGoalId}
+                subCategory={subCategory}
                 onDeposit={handleDepositToGoal}
                 onBackToRoom={() => navigateTo('room')}
               />
@@ -199,6 +249,7 @@ export default function App() {
               <TasksScreen
                 coins={gameState.coins}
                 tasks={gameState.tasks}
+                subCategory={subCategory}
                 onBackToRoom={() => navigateTo('room')}
               />
             )}
@@ -216,13 +267,13 @@ export default function App() {
           <CollectModal
             visible={collectModalVisible}
             onClose={() => setCollectModalVisible(false)}
-            onClaim={handleClaimDailyReward}
+            onClaim={(amt) => handleClaimDailyReward(amt, 'Ежедневный подарок')}
           />
 
           <ScratchModal
             visible={scratchModalVisible}
             onClose={() => setScratchModalVisible(false)}
-            onReward={handleClaimDailyReward}
+            onReward={(amt) => handleClaimDailyReward(amt, 'Счастливый билет')}
           />
 
           {/* Parent & Expert Review Modal (ТЗ 2.5.12 & 2.5.13) */}

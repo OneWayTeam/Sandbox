@@ -24,11 +24,21 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
   onConfirmWithdraw,
   onClose,
 }) => {
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
   if (!goal) return null;
 
   const withdrawAmount = 10;
   const currentSaved = goal.savedAmount;
   const newSaved = Math.max(0, currentSaved - withdrawAmount);
+
+  const handleConfirmPress = () => {
+    if (isWithdrawing) return;
+    setIsWithdrawing(true);
+    onConfirmWithdraw(withdrawAmount);
+    onClose();
+    setTimeout(() => setIsWithdrawing(false), 400);
+  };
 
   // Time horizon calculation (assumes average deposit of 10 coins per period)
   const currentPeriodsLeft = Math.ceil(Math.max(0, goal.totalCost - currentSaved) / 10);
@@ -97,15 +107,13 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.confirmWithdrawBtn}
-                onPress={() => {
-                  onConfirmWithdraw(withdrawAmount);
-                  onClose();
-                }}
+                style={[styles.confirmWithdrawBtn, isWithdrawing && { opacity: 0.6 }]}
+                onPress={handleConfirmPress}
+                disabled={isWithdrawing}
                 activeOpacity={0.85}
               >
                 <Text style={styles.confirmWithdrawBtnText}>
-                  Снять {withdrawAmount} монет
+                  {isWithdrawing ? 'Снятие...' : `Снять ${withdrawAmount} монет`}
                 </Text>
               </TouchableOpacity>
             </View>

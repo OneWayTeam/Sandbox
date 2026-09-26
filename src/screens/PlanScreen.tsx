@@ -41,12 +41,14 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
   onPeriodAdvanced,
 }) => {
   // Available budget to plan for this period
-  const totalAvailable = Math.max(30, coins);
+  const totalAvailable = Math.max(coins, budgetPlan.isApproved ? (budgetPlan.mandatory + budgetPlan.discretionary + budgetPlan.savings) : 25);
 
   // Local state for allocation before approval
-  const [mandatory, setMandatory] = useState(budgetPlan.mandatory || 10);
-  const [discretionary, setDiscretionary] = useState(budgetPlan.discretionary || 10);
-  const [savings, setSavings] = useState(budgetPlan.savings || 10);
+  const [mandatory, setMandatory] = useState(budgetPlan.mandatory ?? 10);
+  const [discretionary, setDiscretionary] = useState(budgetPlan.discretionary ?? 5);
+  const [savings, setSavings] = useState(budgetPlan.savings ?? 10);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalAllocated = mandatory + discretionary + savings;
   const remainingBudget = totalAvailable - totalAllocated;
@@ -67,16 +69,22 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
   };
 
   const handleApprove = () => {
+    if (isSubmitting) return;
     if (totalAllocated > totalAvailable) {
       alert('Сумма плана не может превышать доступный бюджет!');
       return;
     }
+    setIsSubmitting(true);
     gameStore.approveBudgetPlan(mandatory, discretionary, savings);
+    setTimeout(() => setIsSubmitting(false), 400);
   };
 
   const handleAdvancePeriod = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     gameStore.advancePeriod();
     if (onPeriodAdvanced) onPeriodAdvanced();
+    setTimeout(() => setIsSubmitting(false), 600);
   };
 
   return (
@@ -263,12 +271,15 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
         {/* Approval or Advance Period Action */}
         {!budgetPlan.isApproved ? (
           <TouchableOpacity
-            style={styles.approveBtn}
+            style={[styles.approveBtn, isSubmitting && { opacity: 0.6 }]}
             onPress={handleApprove}
+            disabled={isSubmitting}
             activeOpacity={0.85}
           >
             <IconCheck size={18} color="#FFFFFF" />
-            <Text style={styles.approveBtnText}>Утвердить личный план бюджета</Text>
+            <Text style={styles.approveBtnText}>
+              {isSubmitting ? 'Сохранение плана...' : 'Утвердить личный план бюджета'}
+            </Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.approvedActions}>
@@ -281,13 +292,14 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
 
             {/* Advance Period (ТЗ 2.6: не менее 5 периодов в демонстрационном режиме) */}
             <TouchableOpacity
-              style={styles.advancePeriodBtn}
+              style={[styles.advancePeriodBtn, isSubmitting && { opacity: 0.6 }]}
               onPress={handleAdvancePeriod}
+              disabled={isSubmitting}
               activeOpacity={0.85}
             >
               <IconSparkleStar size={18} />
               <Text style={styles.advancePeriodBtnText}>
-                Завершить период {period} и подвести итоги →
+                {isSubmitting ? 'Подведение итогов...' : `Завершить период ${period} и подвести итоги →`}
               </Text>
             </TouchableOpacity>
           </View>

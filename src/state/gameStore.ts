@@ -8,17 +8,13 @@ import {
   FinancialTask,
   ShopItem,
   PeriodSummary,
-  PetStage,
   PetAppearance,
+  GameTransaction,
+  EducationalProgress,
 } from '../types/gameTypes';
-import {
-  INITIAL_GOALS,
-  INITIAL_SHOP_ITEMS,
-  INITIAL_TASKS,
-  PET_STAGES,
-} from './gameData';
-
-const STORAGE_KEY = '@finny_game_storage_v1';
+import { INITIAL_SHOP_ITEMS } from './gameData';
+import { GameEngine, EngineState, createDefaultEngineState } from '../engine/GameEngine';
+import { StorageManager } from '../storage/StorageManager';
 
 export interface GameState {
   profile: UserProfile;
@@ -34,68 +30,60 @@ export interface GameState {
   shopItems: ShopItem[];
   purchasedItemIds: string[];
   periodSummaries: PeriodSummary[];
+  transactions: GameTransaction[];
   isDemonstrationMode: boolean;
+  educationalProgress: EducationalProgress;
 }
 
-const DEFAULT_PROFILE: UserProfile = {
-  petName: 'Финни',
-  playerName: 'Зайка',
-  stage: 1,
-  appearance: {
-    sweaterColor: 'green',
-    accessory: 'clover',
-    hat: 'none',
-  },
-  onboardingCompleted: true,
-};
-
-const DEFAULT_PET_STATE: PetState = {
-  satiety: 75,
-  mood: 85,
-  energy: 90,
-  statusText: 'Финни сыт и вдохновлён на творчество!',
-};
-
-const DEFAULT_BUDGET_PLAN: BudgetPlan = {
-  mandatory: 10,
-  discretionary: 10,
-  savings: 10,
-  isApproved: false,
-};
-
-const DEFAULT_BUDGET_FACT: BudgetFact = {
-  mandatory: 0,
-  discretionary: 0,
-  savings: 0,
-};
-
-export const createInitialState = (): GameState => ({
-  profile: { ...DEFAULT_PROFILE },
-  coins: 25,
-  savings: 35,
-  period: 1,
-  petState: { ...DEFAULT_PET_STATE },
-  budgetPlan: { ...DEFAULT_BUDGET_PLAN },
-  budgetFact: { ...DEFAULT_BUDGET_FACT },
-  goals: JSON.parse(JSON.stringify(INITIAL_GOALS)),
-  activeGoalId: 'goal_paints',
-  tasks: JSON.parse(JSON.stringify(INITIAL_TASKS)),
-  shopItems: [...INITIAL_SHOP_ITEMS],
-  purchasedItemIds: [],
-  periodSummaries: [],
-  isDemonstrationMode: true,
-});
-
 class GameStore {
-  private state: GameState = createInitialState();
+  private engine: GameEngine;
   private listeners: Array<() => void> = [];
 
   constructor() {
+    this.engine = new GameEngine();
     this.load();
   }
 
+  public getEngine(): GameEngine {
+    return this.engine;
+  }
+
   public getState(): GameState {
-    return this.state;
+    const s = this.engine.getState();
+
+    // Merge transactions from income and purchases sorted by timestamp
+    const allTransactions: GameTransaction[] = [
+      ...s.incomeHistory,
+      ...s.purchaseHistory,
+    ].sort((a, b) => b.timestamp - a.timestamp);
+
+    return {
+      profile: { ...s.playerProfile },
+      coins: s.balance,
+      savings: s.savings,
+      period: s.currentPeriod,
+      petState: { ...s.petState },
+      budgetPlan: {
+        mandatory: s.plannedMandatory,
+        discretionary: s.plannedOptional,
+        savings: s.plannedSavings,
+        isApproved: s.isBudgetApproved,
+      },
+      budgetFact: {
+        mandatory: s.actualMandatory,
+        discretionary: s.actualOptional,
+        savings: s.actualSavings,
+      },
+      goals: s.goals,
+      activeGoalId: s.currentGoalId,
+      tasks: s.tasks,
+      shopItems: [...INITIAL_SHOP_ITEMS],
+      purchasedItemIds: [...s.purchasedItemIds],
+      periodSummaries: [...s.periodHistory],
+      transactions: allTransactions,
+      isDemonstrationMode: s.demoModeState,
+      educationalProgress: { ...s.educationalProgress },
+    };
   }
 
   public subscribe(listener: () => void): () => void {
@@ -110,225 +98,217 @@ class GameStore {
     this.save();
   }
 
-  // --- PERSISTENCE ---
-  public async load() {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const parsed = JSON.parse(data);
-        this.state = {
-          ...this.state,
-          ...parsed,
-          goals: parsed.goals?.length ? parsed.goals : INITIAL_GOALS,
-          tasks: parsed.tasks?.length ? parsed.tasks : INITIAL_TASKS,
-        };
-        this.notify();
-      }
-    } catch (e) {
-      console.warn('Failed to load game store', e);
-    }
-  }
+  // --- PERSISTENCE DELEGATED TO STORAGEMANAGER ---
+  public async load(): Promise<boolean> {
+    const res = await StorageManager.load();
+    this.engine = new GameEngine(res.state);
 
-  public async save() {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-    } catch (e) {
-      console.warn('Failed to save game store', e);
-    }
-  }
-
-  public async resetTestProfile() {
-    this.state = createInitialState();
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    this.notify();
-  }
-
-  // --- ACTIONS ---
-  public updateProfile(name: string, petName: string, appearance: PetAppearance) {
-    this.state.profile.playerName = name || this.state.profile.playerName;
-    this.state.profile.petName = petName || this.state.profile.petName;
-    this.state.profile.appearance = appearance;
-    this.state.profile.onboardingCompleted = true;
-    this.notify();
-  }
-
-  public setAppearance(appearance: PetAppearance) {
-    this.state.profile.appearance = appearance;
-    this.notify();
-  }
-
-  public approveBudgetPlan(mandatory: number, discretionary: number, savings: number) {
-    this.state.budgetPlan = {
-      mandatory,
-      discretionary,
-      savings,
-      isApproved: true,
-    };
-    this.state.petState.statusText = 'Бюджет утверждён! Теперь следуем плану.';
-    this.notify();
-  }
-
-  public completeTask(taskId: string, optionId: string): { isCorrect: boolean; explanation: string; reward: number } {
-    const task = this.state.tasks.find((t) => t.id === taskId);
-    if (!task) return { isCorrect: false, explanation: '', reward: 0 };
-
-    const option = task.options.find((o) => o.id === optionId);
-    if (!option) return { isCorrect: false, explanation: '', reward: 0 };
-
-    task.completed = true;
-    task.userChoiceId = optionId;
-
-    // Apply reward
-    const reward = option.rewardChange;
-    this.state.coins += reward;
-
-    // Apply mood & satiety adjustments
-    this.state.petState.mood = Math.min(100, Math.max(10, this.state.petState.mood + option.moodChange));
-    if (option.satietyChange) {
-      this.state.petState.satiety = Math.min(100, Math.max(10, this.state.petState.satiety + option.satietyChange));
-    }
-
-    this.state.petState.statusText = option.isCorrect
-      ? 'Финни гордится твоим мудрым решением!'
-      : 'Финни понял ошибку и в следующий раз поступит лучше.';
-
-    this.notify();
-    return { isCorrect: option.isCorrect, explanation: option.explanation, reward };
-  }
-
-  public buyItem(item: ShopItem): { success: boolean; message: string } {
-    if (this.state.coins < item.price) {
-      const shortage = item.price - this.state.coins;
-      return {
-        success: false,
-        message: `Не хватает ${shortage} монет! Выполни задание в парке или отложи покупку на следующий период.`,
-      };
-    }
-
-    // Deduct coins
-    this.state.coins -= item.price;
-    this.state.purchasedItemIds.push(item.id);
-
-    // Track budget fact
-    if (item.type === 'mandatory') {
-      this.state.budgetFact.mandatory += item.price;
-      this.state.petState.satiety = Math.min(100, this.state.petState.satiety + item.satietyBoost);
-    } else {
-      this.state.budgetFact.discretionary += item.price;
-      this.state.petState.mood = Math.min(100, this.state.petState.mood + item.moodBoost);
-    }
-
-    this.state.petState.statusText = `Куплено: ${item.title}! Финни счастлив!`;
-    this.notify();
-    return { success: true, message: `Успешно куплено: ${item.title}!` };
-  }
-
-  public depositToGoal(amount: number): { success: boolean; message: string } {
-    if (this.state.coins < amount) {
-      return { success: false, message: 'Недостаточно свободных монет для пополнения цели.' };
-    }
-
-    this.state.coins -= amount;
-    this.state.savings += amount;
-    this.state.budgetFact.savings += amount;
-
-    // Update active goal
-    const goal = this.state.goals.find((g) => g.id === this.state.activeGoalId);
-    if (goal) {
-      goal.savedAmount = Math.min(goal.totalCost, goal.savedAmount + amount);
-      if (goal.savedAmount >= goal.totalCost) {
-        this.state.petState.statusText = `Ура! Цель «${goal.title}» полностью достигнута!`;
-      } else {
-        this.state.petState.statusText = `Отложено +${amount} монет в цель «${goal.title}»!`;
-      }
-    }
-
-    this.notify();
-    return { success: true, message: `В копилку цели отложено +${amount} монет!` };
-  }
-
-  public withdrawFromGoal(amount: number): { success: boolean; message: string } {
-    const goal = this.state.goals.find((g) => g.id === this.state.activeGoalId);
-    if (!goal || goal.savedAmount < amount) {
-      return { success: false, message: 'В копилке недостаточно средств.' };
-    }
-
-    goal.savedAmount -= amount;
-    this.state.savings -= amount;
-    this.state.coins += amount;
-    this.state.petState.mood = Math.max(20, this.state.petState.mood - 10);
-    this.state.petState.statusText = `Снято ${amount} монет из цели. Срок достижения мечты увеличился.`;
-
-    this.notify();
-    return {
-      success: true,
-      message: `Снято ${amount} монет. Теперь в цели: ${goal.savedAmount} из ${goal.totalCost}.`,
-    };
-  }
-
-  public selectGoal(goalId: string) {
-    this.state.activeGoalId = goalId;
-    this.notify();
-  }
-
-  public advancePeriod(): PeriodSummary {
-    const pNum = this.state.period;
-    const plan = { ...this.state.budgetPlan };
-    const fact = { ...this.state.budgetFact };
-
-    // Discipline check: did user satisfy mandatory and save for goal?
-    const disciplined = fact.mandatory > 0 && fact.savings > 0;
-    const bonus = disciplined ? 15 : 5;
-
-    const summary: PeriodSummary = {
-      periodNumber: pNum,
-      plan,
-      fact,
-      disciplined,
-      bonusAwarded: bonus,
-    };
-
-    this.state.periodSummaries.push(summary);
-
-    // Period increment
-    if (this.state.period < 5) {
-      this.state.period += 1;
-    } else {
-      this.state.period = 1; // loop or keep at 5
-    }
-
-    // Award base allowance + discipline bonus
-    this.state.coins += 20 + bonus;
-
-    // Check pet growth stage (ТЗ 2.5.10 & 2.6: не менее 3 стадий развития)
-    if (this.state.period >= 4) {
-      this.state.profile.stage = 3; // Мастер-иллюстратор
-    } else if (this.state.period >= 2) {
-      this.state.profile.stage = 2; // Юный мастер
-    } else {
-      this.state.profile.stage = 1; // Малыш
-    }
-
-    // Reset period fact & plan for new period
-    this.state.budgetFact = { mandatory: 0, discretionary: 0, savings: 0 };
-    this.state.budgetPlan = { mandatory: 10, discretionary: 10, savings: 10, isApproved: false };
-
-    // Uncomplete tasks for demo repeat
-    if (this.state.isDemonstrationMode) {
-      this.state.tasks.forEach((t) => {
-        t.completed = false;
-        t.userChoiceId = undefined;
+    if (res.recoveredFromBackup) {
+      this.engine.updatePetState({
+        statusText: 'Восстановлено последнее надёжное сохранение сейфа!',
       });
     }
 
-    this.state.petState.statusText = `Наступил Период ${this.state.period}! Доход начислен: +${20 + bonus} монет!`;
     this.notify();
-    return summary;
+    return true;
+  }
+
+  public async save(): Promise<void> {
+    await StorageManager.save(this.engine.getState() as any);
+  }
+
+  public async resetTestProfile(): Promise<void> {
+    // Reset to deterministic demo test profile
+    const demoState = StorageManager.createDeterministicDemoState();
+    this.engine = new GameEngine(demoState);
+    await StorageManager.save(demoState);
+    this.notify();
+  }
+
+  public async resetAllLocalData(): Promise<void> {
+    // Complete wipe of all storage keys including legacy and backup
+    await StorageManager.resetAllStorage();
+    this.engine = new GameEngine();
+    await StorageManager.save(this.engine.getState() as any);
+    this.notify();
+  }
+
+  public async deleteProfile(): Promise<void> {
+    try {
+      this.engine.deleteProfile();
+      await StorageManager.resetAllStorage();
+    } catch (e) {
+      console.warn('Failed to delete profile', e);
+    }
+    this.notify();
+  }
+
+  // --- ACTIONS DELEGATED TO CORE ENGINE ---
+  public completeOnboarding(name: string, petName: string, appearance: PetAppearance) {
+    const res = this.engine.createProfile(name, petName, appearance);
+    if (res.success) {
+      this.notify();
+    }
+    return res;
+  }
+
+  public updateProfile(name: string, petName: string, appearance: PetAppearance) {
+    const res = this.engine.updatePet(appearance, petName);
+    if (name) {
+      const s = this.engine.getState() as any;
+      s.playerProfile.playerName = name;
+    }
+    this.notify();
+    return res;
+  }
+
+  public setAppearance(appearance: PetAppearance) {
+    const res = this.engine.updatePet(appearance);
+    if (res.success) {
+      this.notify();
+    }
+    return res;
+  }
+
+  public claimDailyReward(amount: number, title: string = 'Ежедневная награда') {
+    const res = this.engine.receiveIncome(amount, 'daily_reward', title, 'reward');
+    if (res.success) {
+      this.engine.updatePetState({
+        mood: Math.min(100, this.engine.getState().petState.mood + 10),
+        statusText: `Получена награда: +${amount} монет!`,
+      });
+      this.notify();
+    }
+    return res;
+  }
+
+  public grantParentBonus(amount: number, reason: string = 'Поощрение от родителей') {
+    const res = this.engine.receiveIncome(amount, 'parent_bonus', reason, 'parent');
+    if (res.success) {
+      this.engine.updatePetState({
+        mood: Math.min(100, this.engine.getState().petState.mood + 15),
+        statusText: `Родители похвалили: начислено +${amount} монет!`,
+      });
+      this.notify();
+    }
+    return res;
+  }
+
+  public approveBudgetPlan(mandatory: number, discretionary: number, savings: number) {
+    const res = this.engine.confirmBudget(mandatory, discretionary, savings);
+    if (res.success) {
+      this.notify();
+    }
+    return res;
+  }
+
+  public completeTask(
+    taskId: string,
+    optionId: string
+  ): { isCorrect: boolean; explanation: string; reward: number } {
+    const res = this.engine.completeTask(taskId, optionId);
+    if (res.success && res.data) {
+      this.notify();
+      return res.data;
+    }
+    return {
+      isCorrect: false,
+      explanation: res.error || 'Задание не выполнено',
+      reward: 0,
+    };
+  }
+
+  public buyItem(item: ShopItem): { success: boolean; message: string; teachableMoment?: string } {
+    const res = this.engine.buyItem(item);
+    if (res.success) {
+      this.notify();
+      return { success: true, message: `Успешно куплено: ${item.title}!` };
+    }
+    return {
+      success: false,
+      message: res.error || 'Не удалось совершить покупку',
+      teachableMoment: res.teachableMoment,
+    };
+  }
+
+  public equipItem(itemId: string): { success: boolean; message: string } {
+    if (itemId === 'clothes_beret') {
+      this.engine.updatePet({ hat: 'beret' });
+      this.engine.updatePetState({ statusText: 'Финни примерил берет мастера!' });
+      this.notify();
+      return { success: true, message: 'Берет мастера надет на Финни!' };
+    }
+    if (itemId === 'clothes_scarf') {
+      this.engine.updatePetState({
+        mood: Math.min(100, this.engine.getState().petState.mood + 10),
+        statusText: 'Финни надел тёплый вязаный шарф!',
+      });
+      this.notify();
+      return { success: true, message: 'Тёплый шарф согревает Финни!' };
+    }
+    if (itemId.startsWith('food_')) {
+      this.engine.updatePetState({
+        satiety: Math.min(100, this.engine.getState().petState.satiety + 20),
+        statusText: 'Финни с удовольствием подкрепился!',
+      });
+      this.notify();
+      return { success: true, message: 'Питомец покормлен!' };
+    }
+    this.engine.updatePetState({ statusText: 'Предмет активирован в комнате!' });
+    this.notify();
+    return { success: true, message: 'Предмет используется!' };
+  }
+
+  public depositToGoal(amount: number): { success: boolean; message: string } {
+    const res = this.engine.transferToSavings(amount);
+    if (res.success) {
+      this.notify();
+      return { success: true, message: `В копилку цели отложено +${amount} монет!` };
+    }
+    return { success: false, message: res.error || 'Не удалось пополнить копилку' };
+  }
+
+  public withdrawFromGoal(amount: number): { success: boolean; message: string } {
+    const res = this.engine.withdrawFromSavings(amount);
+    if (res.success) {
+      this.notify();
+      const goal = this.engine.getCurrentGoal();
+      return {
+        success: true,
+        message: `Снято ${amount} монет. Теперь в цели: ${goal?.savedAmount ?? 0} из ${goal?.totalCost ?? 0}.`,
+      };
+    }
+    return { success: false, message: res.error || 'Не удалось снять монеты' };
+  }
+
+  public selectGoal(goalId: string) {
+    const res = this.engine.selectGoal(goalId);
+    if (res.success) {
+      this.notify();
+    }
+    return res;
+  }
+
+  public advancePeriod(): PeriodSummary | null {
+    const res = this.engine.finishPeriod();
+    if (res.success && res.data) {
+      this.notify();
+      return res.data;
+    }
+    return null;
   }
 
   public setDemonstrationMode(enabled: boolean) {
-    this.state.isDemonstrationMode = enabled;
+    (this.engine.getState() as any).demoModeState = enabled;
     this.notify();
+  }
+
+  public toggleAnimations(enabled?: boolean) {
+    const res = this.engine.toggleAnimations(enabled);
+    if (res.success) {
+      this.notify();
+    }
+    return res;
   }
 }
 

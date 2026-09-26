@@ -335,4 +335,38 @@ export const IconMinus: React.FC<IconProps> = ({ size = 18, color = '#FFFFFF' })
   </Svg>
 );
 
+// 26. Lightbulb (Idea / Educational Tip)
+export const IconLightbulb: React.FC<IconProps> = ({ size = 20, color = '#F59E0B' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M9 18H15M10 21H14M12 2C8.13401 2 5 5.13401 5 9C5 11.38 6.19 13.47 8 14.74V17H16V14.74C17.81 13.47 19 11.38 19 9C19 5.13401 15.866 2 12 2Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="#FEF3C7"
+    />
+  </Svg>
+);
+
+// 27. Clover (Luck / Badge)
+export const IconClover: React.FC<IconProps> = ({ size = 20, color = '#16A34A' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx={8.5} cy={8.5} r={4.5} fill="#86EFAC" stroke={color} strokeWidth={1.8} />
+    <Circle cx={15.5} cy={8.5} r={4.5} fill="#86EFAC" stroke={color} strokeWidth={1.8} />
+    <Circle cx={12} cy={14.5} r={4.5} fill="#86EFAC" stroke={color} strokeWidth={1.8} />
+    <Path d="M12 14.5V21" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+  </Svg>
+);
+
+// 28. Medal / Achievement Award
+export const IconMedal: React.FC<IconProps> = ({ size = 22, color = '#D97706' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Circle cx={12} cy={14} r={6} fill="#FDE68A" stroke={color} strokeWidth={2} />
+    <Path d="M8 3L10 8M16 3L14 8" stroke="#EF4444" strokeWidth={2.5} strokeLinecap="round" />
+    <Circle cx={12} cy={14} r={2.5} fill={color} />
+  </Svg>
+);
+
+
 

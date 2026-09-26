@@ -309,35 +309,35 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         onPress={() => onSubCategoryChange && onSubCategoryChange('quests')}
         style={styles.tabItem}
       >
-        <View style={[styles.iconWrapper, subCategory === 'quests' && styles.activeIconPill]}>
+        <View style={[styles.iconWrapper, (subCategory === 'quests' || subCategory === 'all') && styles.activeIconPill]}>
           <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-            <Rect x={5} y={4} width={14} height={17} rx={2} stroke={subCategory === 'quests' ? COLORS.primary : COLORS.textSecondary} strokeWidth={2} />
-            <Path d="M9 2H15V5H9V2Z" stroke={subCategory === 'quests' ? COLORS.primary : COLORS.textSecondary} strokeWidth={1.8} />
+            <Rect x={5} y={4} width={14} height={17} rx={2} stroke={(subCategory === 'quests' || subCategory === 'all') ? COLORS.primary : COLORS.textSecondary} strokeWidth={2} />
+            <Path d="M9 2H15V5H9V2Z" stroke={(subCategory === 'quests' || subCategory === 'all') ? COLORS.primary : COLORS.textSecondary} strokeWidth={1.8} />
           </Svg>
         </View>
-        <Text style={[styles.tabLabel, subCategory === 'quests' ? styles.activeLabel : styles.inactiveLabel]}>Квесты</Text>
+        <Text style={[styles.tabLabel, (subCategory === 'quests' || subCategory === 'all') ? styles.activeLabel : styles.inactiveLabel]}>Все</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => onSubCategoryChange && onSubCategoryChange('art_walk')}
+        onPress={() => onSubCategoryChange && onSubCategoryChange('budget')}
         style={styles.tabItem}
       >
-        <View style={[styles.iconWrapper, subCategory === 'art_walk' && styles.activeIconPill]}>
+        <View style={[styles.iconWrapper, subCategory === 'budget' && styles.activeIconPill]}>
           <IconPalette size={22} />
         </View>
-        <Text style={[styles.tabLabel, subCategory === 'art_walk' ? styles.activeLabel : styles.inactiveLabel]}>Пленэр</Text>
+        <Text style={[styles.tabLabel, subCategory === 'budget' ? styles.activeLabel : styles.inactiveLabel]}>Бюджет</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => onSubCategoryChange && onSubCategoryChange('friends')}
+        onPress={() => onSubCategoryChange && onSubCategoryChange('savings')}
         style={styles.tabItem}
       >
-        <View style={[styles.iconWrapper, subCategory === 'friends' && styles.activeIconPill]}>
-          <Image source={require('../../assets/avatar.png')} style={{ width: 22, height: 22, borderRadius: 11 }} />
+        <View style={[styles.iconWrapper, subCategory === 'savings' && styles.activeIconPill]}>
+          <IconTarget size={22} color={subCategory === 'savings' ? COLORS.primary : COLORS.textSecondary} />
         </View>
-        <Text style={[styles.tabLabel, subCategory === 'friends' ? styles.activeLabel : styles.inactiveLabel]}>Друзья</Text>
+        <Text style={[styles.tabLabel, subCategory === 'savings' ? styles.activeLabel : styles.inactiveLabel]}>Сбережения</Text>
       </TouchableOpacity>
 
       <TouchableOpacity

@@ -21,13 +21,16 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "^7.0.2"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "build:tests": "tsc tests/coreEconomy.test.ts tests/persistence.test.ts tests/contentValidation.test.ts tests/petSystem.test.ts tests/stabilityPass.test.ts --outDir dist-tests --module commonjs --target es2020 --esModuleInterop --skipLibCheck --ignoreConfig",
+    "test": "node dist-tests/tests/coreEconomy.test.js && node dist-tests/tests/persistence.test.js && node dist-tests/tests/contentValidation.test.js && node dist-tests/tests/petSystem.test.js && node dist-tests/tests/stabilityPass.test.js"
   },
   "private": true
 }

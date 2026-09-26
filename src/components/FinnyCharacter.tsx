@@ -7,12 +7,10 @@ import {
   TouchableWithoutFeedback,
   Text,
 } from 'react-native';
-import {
-  PET_CUSTOM_ASSETS,
-  PetAnimationType,
-} from '../pet/petFrames';
-import { IconSparkleStar, IconHeart } from './GameIcons';
-import { PetAppearance } from '../types/gameTypes';
+import { PetAnimationType } from '../pet/petFrames';
+import { PetAssetRegistry } from '../pet/petAssetRegistry';
+import { IconSparkleStar, IconHeart, IconClover, IconCheck } from './GameIcons';
+import { PetAppearance, PetStage, PetMoodState, PetReactionEvent } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
 
 interface FinnyCharacterProps {
@@ -20,6 +18,8 @@ interface FinnyCharacterProps {
   onTap?: () => void;
   scale?: number;
   appearance?: PetAppearance;
+  stage?: PetStage;
+  moodState?: PetMoodState;
 }
 
 export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
@@ -27,10 +27,17 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
   onTap,
   scale = 1,
   appearance,
+  stage,
+  moodState,
 }) => {
-  const currentAppearance = appearance || gameStore.getState().profile.appearance;
+  const storeState = gameStore.getState();
+  const currentAppearance = appearance || (storeState as any).petCustomization || storeState.profile?.appearance || { sweaterColor: 'green', hat: 'none', accessory: 'clover' };
+  const currentStage: PetStage = stage || ((storeState as any).petDevelopmentStage as PetStage) || storeState.profile?.stage || 1;
+  const currentMoodState: PetMoodState = moodState || storeState.petState?.moodState || 'calm';
+  const animationsEnabled = (storeState as any).settings?.animationsEnabled ?? true;
+
   const [activeAnim, setActiveAnim] = useState<PetAnimationType>(currentAnimation);
-  const [showReaction, setShowReaction] = useState(false);
+  const [activeReaction, setActiveReaction] = useState<PetReactionEvent | null>(null);
 
   // UI Animations (Jump, Breath, Reaction, Shadow)
   const jumpAnim = useRef(new Animated.Value(0)).current;
@@ -39,8 +46,14 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
   const breathAnimY = useRef(new Animated.Value(1)).current;
   const breathAnimX = useRef(new Animated.Value(1)).current;
 
-  // Continuous organic breathing anchored at feet
+  // 1. Organic Breathing loop (Only when animationsEnabled is true)
   useEffect(() => {
+    if (!animationsEnabled) {
+      breathAnimY.setValue(1.0);
+      breathAnimX.setValue(1.0);
+      return;
+    }
+
     const breathing = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -71,22 +84,51 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
     );
     breathing.start();
     return () => breathing.stop();
-  }, [breathAnimY, breathAnimX]);
+  }, [animationsEnabled, breathAnimY, breathAnimX]);
 
-  // Update activeAnim if external prop changes
+  // 2. Sync prop animation
   useEffect(() => {
     if (currentAnimation !== activeAnim) {
       setActiveAnim(currentAnimation);
     }
   }, [currentAnimation]);
 
-  // Natural Blinking Timer (every 3.8 to 6.8 seconds when in idle)
+  // 3. Listen to store lastReaction changes (income, purchase, savings, task_completed, stage_evolution)
+  const lastReactionFromStore = storeState.petState?.lastReaction;
+  const prevReactionTimestampRef = useRef<number>(0);
+
   useEffect(() => {
+    if (
+      lastReactionFromStore &&
+      lastReactionFromStore.timestamp > prevReactionTimestampRef.current
+    ) {
+      prevReactionTimestampRef.current = lastReactionFromStore.timestamp;
+      setActiveReaction(lastReactionFromStore);
+
+      if (animationsEnabled) {
+        reactionAnim.setValue(0);
+        Animated.timing(reactionAnim, {
+          toValue: 1,
+          duration: 1800,
+          useNativeDriver: true,
+        }).start(() => setActiveReaction(null));
+      } else {
+        // If animations disabled, display static badge briefly
+        const timer = setTimeout(() => setActiveReaction(null), 2500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [lastReactionFromStore, animationsEnabled, reactionAnim]);
+
+  // 4. Natural Blinking Timer (no jarring strobe/flicker)
+  useEffect(() => {
+    if (!animationsEnabled) return;
+
     let blinkTimeout: any;
     let blinkEndTimeout: any;
 
     const scheduleNextBlink = () => {
-      const delay = 3800 + Math.random() * 3000;
+      const delay = 3800 + Math.random() * 3200;
       blinkTimeout = setTimeout(() => {
         if (activeAnim === 'idle') {
           setActiveAnim('blink');
@@ -106,20 +148,33 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
       if (blinkTimeout) clearTimeout(blinkTimeout);
       if (blinkEndTimeout) clearTimeout(blinkEndTimeout);
     };
-  }, [activeAnim]);
+  }, [activeAnim, animationsEnabled]);
 
-  // Interactive Tap: triggers spring jump + celebrating photo pose + reaction badge
+  // 5. Interactive Tap
   const handleTap = useCallback(() => {
     if (onTap) onTap();
 
+    if (!animationsEnabled) {
+      setActiveReaction({
+        type: 'tap',
+        message: 'Привет! Финни рад тебе!',
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
     // Trigger reaction bubble with smooth fade & float
-    setShowReaction(true);
+    setActiveReaction({
+      type: 'tap',
+      message: 'Привет! 🐾',
+      timestamp: Date.now(),
+    });
     reactionAnim.setValue(0);
     Animated.timing(reactionAnim, {
       toValue: 1,
-      duration: 1200,
+      duration: 1400,
       useNativeDriver: true,
-    }).start(() => setShowReaction(false));
+    }).start(() => setActiveReaction(null));
 
     // Joyful spring jump & dynamic shadow
     Animated.sequence([
@@ -156,30 +211,15 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
     setTimeout(() => {
       setActiveAnim('idle');
     }, 1400);
-  }, [onTap, jumpAnim, shadowScale, reactionAnim]);
+  }, [onTap, animationsEnabled, jumpAnim, shadowScale, reactionAnim]);
 
-  // Determine base 3D photorealistic render for character idle/customization
-  const getBaseCustomPhoto = () => {
-    const stage = gameStore.getState().profile.stage;
-    if (stage === 3) {
-      return PET_CUSTOM_ASSETS.stages[3];
-    }
-    if (currentAppearance.hat === 'beret') {
-      return PET_CUSTOM_ASSETS.hats.beret;
-    }
-    if (currentAppearance.hat === 'glasses') {
-      return PET_CUSTOM_ASSETS.hats.glasses;
-    }
-    if (currentAppearance.sweaterColor === 'blue') {
-      return PET_CUSTOM_ASSETS.sweaters.blue;
-    }
-    if (currentAppearance.sweaterColor === 'red') {
-      return PET_CUSTOM_ASSETS.sweaters.red;
-    }
-    return PET_CUSTOM_ASSETS.sweaters.green;
-  };
-
-  const basePhotoSource = getBaseCustomPhoto();
+  // Resolve photorealistic visual layers using PetAssetRegistry
+  const layers = PetAssetRegistry.resolveLayers(
+    currentAppearance,
+    currentStage,
+    currentMoodState,
+    activeAnim
+  );
 
   return (
     <View
@@ -188,12 +228,15 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
         scale !== 1 && { transform: [{ scale }] },
       ]}
       pointerEvents="box-none"
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel={layers.accessibilityDescription}
     >
       {/* Contact Shadow beneath paws on the rug */}
       <Animated.View
         style={[
           styles.shadow,
-          {
+          animationsEnabled && {
             transform: [
               { scaleX: shadowScale },
               { scaleY: shadowScale },
@@ -202,165 +245,171 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
         ]}
       />
 
-      {/* Floating Reaction Bubble */}
-      {showReaction && (
+      {/* Floating Reaction Bubble for Income, Purchase, Savings, Tasks, Stage Growth, Tap */}
+      {activeReaction && (
         <Animated.View
           style={[
             styles.reactionBubble,
-            {
-              opacity: reactionAnim.interpolate({
-                inputRange: [0, 0.15, 0.8, 1],
-                outputRange: [0, 1, 1, 0],
-              }),
-              transform: [
-                {
-                  translateY: reactionAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [10, -50],
+            animationsEnabled
+              ? {
+                  opacity: reactionAnim.interpolate({
+                    inputRange: [0, 0.15, 0.8, 1],
+                    outputRange: [0, 1, 1, 0],
                   }),
-                },
-                {
-                  scale: reactionAnim.interpolate({
-                    inputRange: [0, 0.2, 1],
-                    outputRange: [0.7, 1.1, 0.95],
-                  }),
-                },
-              ],
-            },
+                  transform: [
+                    {
+                      translateY: reactionAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [10, -55],
+                      }),
+                    },
+                    {
+                      scale: reactionAnim.interpolate({
+                        inputRange: [0, 0.2, 1],
+                        outputRange: [0.7, 1.1, 0.95],
+                      }),
+                    },
+                  ],
+                }
+              : { opacity: 1, top: -45 },
           ]}
         >
-          <IconSparkleStar size={14} color="#F59E0B" />
-          <Text style={styles.reactionText}>Привет!</Text>
-          <IconHeart size={13} color="#E11D48" />
+          {activeReaction.type === 'income' ? (
+            <Image source={require('../../assets/coin.png')} style={styles.reactionCoinIcon} />
+          ) : activeReaction.type === 'stage_evolution' ? (
+            <IconSparkleStar size={16} color="#D97706" />
+          ) : activeReaction.type === 'savings' ? (
+            <Image source={require('../../assets/gold_bars.png')} style={styles.reactionCoinIcon} />
+          ) : activeReaction.type === 'task_completed' ? (
+            <IconCheck size={16} color="#16A34A" />
+          ) : (
+            <IconHeart size={14} color="#E11D48" />
+          )}
+
+          <Text style={styles.reactionText}>{activeReaction.message}</Text>
         </Animated.View>
       )}
 
-      {/* Interactive 3D Character with Breathing & Jump */}
+      {/* Interactive Character with Breathing & Jump */}
       <TouchableWithoutFeedback onPress={handleTap}>
         <Animated.View
           style={[
             styles.characterWrapper,
-            {
-              transform: [
-                { translateY: jumpAnim },
-                { scaleY: breathAnimY },
-                { scaleX: breathAnimX },
-              ],
-              cursor: 'pointer',
-            } as any,
+            animationsEnabled
+              ? {
+                  transform: [
+                    { translateY: jumpAnim },
+                    { scaleY: breathAnimY },
+                    { scaleX: breathAnimX },
+                  ],
+                }
+              : {},
+            { cursor: 'pointer' } as any,
           ]}
         >
           <View style={styles.characterImgContainer} pointerEvents="none">
-            {/* 1. Base Idle Photorealistic 3D Character Render */}
+            {/* 1. Base Photorealistic Character Layer */}
             <Image
-              source={basePhotoSource}
+              source={layers.basePhotoSource}
               style={[
                 StyleSheet.absoluteFill,
                 styles.characterImg,
                 {
-                  opacity: (activeAnim === 'idle') ? 1 : 0,
+                  opacity: layers.actionPhotoSource ? 0 : 1,
                 },
               ]}
               resizeMode="contain"
             />
 
-            {/* 2. Natural Blink Frame */}
-            <Image
-              source={PET_CUSTOM_ASSETS.actions.blink}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.characterImg,
-                {
-                  opacity: (activeAnim === 'blink') ? 1 : 0,
-                },
-              ]}
-              resizeMode="contain"
-            />
+            {/* 2. Action Photo Layer (if actively celebrating, eating, sleeping, waving, blink) */}
+            {layers.actionPhotoSource && (
+              <Image
+                source={layers.actionPhotoSource}
+                style={[
+                  StyleSheet.absoluteFill,
+                  styles.characterImg,
+                  { opacity: 1 },
+                ]}
+                resizeMode="contain"
+              />
+            )}
 
-            {/* 3. Celebrating / Happy Cheering Photo Pose */}
-            <Image
-              source={PET_CUSTOM_ASSETS.actions.celebrating}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.characterImg,
-                {
-                  opacity: (activeAnim === 'celebrating' || activeAnim === 'happy') ? 1 : 0,
-                },
-              ]}
-              resizeMode="contain"
-            />
-
-            {/* 4. Eating Crunchy Carrot Action Pose */}
-            <Image
-              source={PET_CUSTOM_ASSETS.actions.eating}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.characterImg,
-                {
-                  opacity: (activeAnim === 'eating') ? 1 : 0,
-                },
-              ]}
-              resizeMode="contain"
-            />
-
-            {/* 5. Sleeping Peaceful Closed-Eyes Pose */}
-            <Image
-              source={PET_CUSTOM_ASSETS.actions.sleeping}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.characterImg,
-                {
-                  opacity: (activeAnim === 'sleeping') ? 1 : 0,
-                },
-              ]}
-              resizeMode="contain"
-            />
-
-            {/* 6. Waving Hello Pose */}
-            <Image
-              source={PET_CUSTOM_ASSETS.actions.waving}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.characterImg,
-                {
-                  opacity: (activeAnim === 'waving') ? 1 : 0,
-                },
-              ]}
-              resizeMode="contain"
-            />
+            {/* 3. Visible Custom Brooch Badge on Sweater */}
+            {layers.accessoryBadge && !layers.actionPhotoSource && (
+              <View style={styles.accessoryBroochBox} pointerEvents="none">
+                <View
+                  style={[
+                    styles.broochCircle,
+                    {
+                      backgroundColor: layers.accessoryBadge.bgColor,
+                      borderColor: layers.accessoryBadge.borderColor,
+                    },
+                  ]}
+                >
+                  {layers.accessoryBadge.type === 'clover' && (
+                    <IconClover size={14} color={layers.accessoryBadge.iconColor} />
+                  )}
+                  {layers.accessoryBadge.type === 'star' && (
+                    <IconSparkleStar size={14} color={layers.accessoryBadge.iconColor} />
+                  )}
+                  {layers.accessoryBadge.type === 'brush' && (
+                    <Text style={{ fontSize: 11 }}>🖌️</Text>
+                  )}
+                </View>
+              </View>
+            )}
           </View>
         </Animated.View>
       </TouchableWithoutFeedback>
+
+      {/* Accessible Mood & Stage Status Pill (Never communicates critically through animation alone) */}
+      <View style={styles.statusPill}>
+        <View
+          style={[
+            styles.moodDot,
+            currentMoodState === 'happy' || currentMoodState === 'excited'
+              ? styles.moodDotGreen
+              : currentMoodState === 'worried'
+              ? styles.moodDotOrange
+              : styles.moodDotBlue,
+          ]}
+        />
+        <Text style={styles.statusPillText}>
+          {layers.stageTitle} • {layers.moodLabel}
+        </Text>
+      </View>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
   outerContainer: {
+    width: 250,
+    height: 310,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   shadow: {
     position: 'absolute',
-    bottom: -2,
-    width: 155,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(38, 22, 14, 0.32)',
-    transform: [{ scaleY: 0.5 }],
+    bottom: 24,
+    width: 140,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(30, 20, 10, 0.22)',
+    alignSelf: 'center',
     zIndex: 1,
   },
   characterWrapper: {
+    width: 240,
+    height: 250,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
   characterImgContainer: {
-    width: 300,
-    height: 380,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 240,
+    height: 250,
     position: 'relative',
   },
   characterImg: {
@@ -369,25 +418,87 @@ const styles = StyleSheet.create({
   },
   reactionBubble: {
     position: 'absolute',
-    top: 30,
+    top: -10,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
     gap: 6,
     zIndex: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
     elevation: 8,
     borderWidth: 1.5,
-    borderColor: '#FDE68A',
+    borderColor: '#E2E8F0',
+    maxWidth: 220,
   },
   reactionText: {
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  reactionCoinIcon: {
+    width: 16,
+    height: 16,
+  },
+  accessoryBroochBox: {
+    position: 'absolute',
+    top: '56%',
+    left: '37%',
+    zIndex: 10,
+  },
+  broochCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statusPill: {
+    position: 'absolute',
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+    zIndex: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  moodDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  moodDotGreen: {
+    backgroundColor: '#16A34A',
+  },
+  moodDotOrange: {
+    backgroundColor: '#F59E0B',
+  },
+  moodDotBlue: {
+    backgroundColor: '#2563EB',
+  },
+  statusPillText: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#334155',
   },

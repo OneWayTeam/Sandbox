@@ -1,35 +1,45 @@
-// Photorealistic 3D Character Asset Mappings
+declare const require: any;
+
+const safeAsset = (fn: () => any, fallbackId: string) => {
+  try {
+    return fn();
+  } catch {
+    return { uri: fallbackId };
+  }
+};
+
+// Photorealistic 3D Character Asset Mappings with graceful Node/Metro compatibility
 export const PET_CUSTOM_ASSETS = {
   sweaters: {
-    green: require('../../assets/pet_custom/sweater_green.png'),
-    blue: require('../../assets/pet_custom/sweater_blue.png'),
-    red: require('../../assets/pet_custom/sweater_red.png'),
+    green: safeAsset(() => require('../../assets/pet_custom/sweater_green.png'), 'sweater_green'),
+    blue: safeAsset(() => require('../../assets/pet_custom/sweater_blue.png'), 'sweater_blue'),
+    red: safeAsset(() => require('../../assets/pet_custom/sweater_red.png'), 'sweater_red'),
   },
   hats: {
     none: null,
-    beret: require('../../assets/pet_custom/hat_beret.png'),
-    glasses: require('../../assets/pet_custom/hat_glasses.png'),
+    beret: safeAsset(() => require('../../assets/pet_custom/hat_beret.png'), 'hat_beret'),
+    glasses: safeAsset(() => require('../../assets/pet_custom/hat_glasses.png'), 'hat_glasses'),
   },
   stages: {
-    1: require('../../assets/pet_custom/sweater_green.png'),
-    2: require('../../assets/pet_custom/hat_beret.png'),
-    3: require('../../assets/pet_custom/stage_master.png'),
+    1: safeAsset(() => require('../../assets/pet_custom/sweater_green.png'), 'stage_1'),
+    2: safeAsset(() => require('../../assets/pet_custom/hat_beret.png'), 'stage_2'),
+    3: safeAsset(() => require('../../assets/pet_custom/stage_master.png'), 'stage_3'),
   },
   actions: {
-    idle: require('../../assets/pet_actions/idle.png'),
-    blink: require('../../assets/finny_blink.png'),
-    waving: require('../../assets/finny_waving.png'),
-    celebrating: require('../../assets/pet_actions/celebrating.png'),
-    eating: require('../../assets/pet_actions/eating.png'),
-    sleeping: require('../../assets/pet_actions/sleeping.png'),
+    idle: safeAsset(() => require('../../assets/pet_actions/idle.png'), 'action_idle'),
+    blink: safeAsset(() => require('../../assets/finny_blink.png'), 'action_blink'),
+    waving: safeAsset(() => require('../../assets/finny_waving.png'), 'action_waving'),
+    celebrating: safeAsset(() => require('../../assets/pet_actions/celebrating.png'), 'action_celebrating'),
+    eating: safeAsset(() => require('../../assets/pet_actions/eating.png'), 'action_eating'),
+    sleeping: safeAsset(() => require('../../assets/pet_actions/sleeping.png'), 'action_sleeping'),
   },
   thumbs: {
-    green: require('../../assets/pet_custom/thumb_green.png'),
-    blue: require('../../assets/pet_custom/thumb_blue.png'),
-    red: require('../../assets/pet_custom/thumb_red.png'),
-    beret: require('../../assets/pet_custom/thumb_beret.png'),
-    glasses: require('../../assets/pet_custom/thumb_glasses.png'),
-    master: require('../../assets/pet_custom/thumb_master.png'),
+    green: safeAsset(() => require('../../assets/pet_custom/thumb_green.png'), 'thumb_green'),
+    blue: safeAsset(() => require('../../assets/pet_custom/thumb_blue.png'), 'thumb_blue'),
+    red: safeAsset(() => require('../../assets/pet_custom/thumb_red.png'), 'thumb_red'),
+    beret: safeAsset(() => require('../../assets/pet_custom/thumb_beret.png'), 'thumb_beret'),
+    glasses: safeAsset(() => require('../../assets/pet_custom/thumb_glasses.png'), 'thumb_glasses'),
+    master: safeAsset(() => require('../../assets/pet_custom/thumb_master.png'), 'thumb_master'),
   },
 };
 
@@ -41,72 +51,3 @@ export type PetAnimationType =
   | 'eating'
   | 'sleeping'
   | 'waving';
-
-export const PET_FRAMES = {
-  idle: [
-    require('../../assets/pet/idle/01.png'),
-    require('../../assets/pet/idle/02.png'),
-    require('../../assets/pet/idle/03.png'),
-    require('../../assets/pet/idle/04.png'),
-    require('../../assets/pet/idle/05.png'),
-    require('../../assets/pet/idle/06.png'),
-    require('../../assets/pet/idle/07.png'),
-    require('../../assets/pet/idle/08.png'),
-    require('../../assets/pet/idle/09.png'),
-    require('../../assets/pet/idle/10.png'),
-    require('../../assets/pet/idle/11.png'),
-    require('../../assets/pet/idle/12.png'),
-    require('../../assets/pet/idle/13.png'),
-    require('../../assets/pet/idle/14.png'),
-  ],
-  blink: [
-    require('../../assets/pet/blink/01.png'),
-    require('../../assets/pet/blink/02.png'),
-    require('../../assets/pet/blink/03.png'),
-    require('../../assets/pet/blink/04.png'),
-    require('../../assets/pet/blink/05.png'),
-    require('../../assets/pet/blink/06.png'),
-  ],
-  happy: [
-    require('../../assets/pet/happy/01.png'),
-    require('../../assets/pet/happy/02.png'),
-    require('../../assets/pet/happy/03.png'),
-    require('../../assets/pet/happy/04.png'),
-    require('../../assets/pet/happy/05.png'),
-    require('../../assets/pet/happy/06.png'),
-    require('../../assets/pet/happy/07.png'),
-    require('../../assets/pet/happy/08.png'),
-    require('../../assets/pet/happy/09.png'),
-    require('../../assets/pet/happy/10.png'),
-    require('../../assets/pet/happy/11.png'),
-    require('../../assets/pet/happy/12.png'),
-    require('../../assets/pet/happy/13.png'),
-    require('../../assets/pet/happy/14.png'),
-    require('../../assets/pet/happy/15.png'),
-    require('../../assets/pet/happy/16.png'),
-  ],
-  sleep: [
-    require('../../assets/pet/sleep/01.png'),
-    require('../../assets/pet/sleep/02.png'),
-    require('../../assets/pet/sleep/03.png'),
-    require('../../assets/pet/sleep/04.png'),
-    require('../../assets/pet/sleep/05.png'),
-    require('../../assets/pet/sleep/06.png'),
-    require('../../assets/pet/sleep/07.png'),
-    require('../../assets/pet/sleep/08.png'),
-    require('../../assets/pet/sleep/09.png'),
-    require('../../assets/pet/sleep/10.png'),
-    require('../../assets/pet/sleep/11.png'),
-    require('../../assets/pet/sleep/12.png'),
-  ],
-  sad: [
-    require('../../assets/pet/sad/01.png'),
-    require('../../assets/pet/sad/02.png'),
-    require('../../assets/pet/sad/03.png'),
-    require('../../assets/pet/sad/04.png'),
-    require('../../assets/pet/sad/05.png'),
-    require('../../assets/pet/sad/06.png'),
-    require('../../assets/pet/sad/07.png'),
-    require('../../assets/pet/sad/08.png'),
-  ],
-};

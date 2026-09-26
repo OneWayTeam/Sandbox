@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
 } from './GameIcons';
 import { gameStore } from '../state/gameStore';
 import { FINANCIAL_TERMS, PET_STAGES } from '../state/gameData';
+import { PetDevelopmentEngine } from '../pet/petDevelopmentEngine';
 
 interface ParentZoneModalProps {
   visible: boolean;
@@ -36,9 +37,22 @@ export const ParentZoneModal: React.FC<ParentZoneModalProps> = ({ visible, onClo
   // Tab inside parent zone
   const [activeTab, setActiveTab] = useState<'progress' | 'glossary' | 'demo'>('progress');
 
-  const gameState = gameStore.getState();
+  const [gameState, setGameState] = useState(() => gameStore.getState());
+
+  useEffect(() => {
+    return gameStore.subscribe(() => {
+      setGameState(gameStore.getState());
+    });
+  }, []);
+
   const currentStage = PET_STAGES.find((s) => s.stage === gameState.profile.stage) || PET_STAGES[0];
   const completedTasksCount = gameState.tasks.filter((t) => t.completed).length;
+  const devEvaluation = PetDevelopmentEngine.evaluateStage(gameState as any);
+  const animationsEnabled = (gameState as any).settings?.animationsEnabled ?? true;
+
+  const handleToggleAnimations = () => {
+    gameStore.toggleAnimations();
+  };
 
   const handleUnlock = () => {
     if (parseInt(mathAnswer.trim(), 10) === numA * numB) {
@@ -49,24 +63,20 @@ export const ParentZoneModal: React.FC<ParentZoneModalProps> = ({ visible, onClo
     }
   };
 
-  const handleResetProfile = async () => {
+  const handleResetDemoProfile = async () => {
     await gameStore.resetTestProfile();
-    alert('Тестовый профиль успешно сброшен к исходному состоянию.');
+    alert('Тестовый профиль демо-режима успешно сброшен к исходному детерминированному состоянию.');
+    onClose();
+  };
+
+  const handleResetAllData = async () => {
+    await gameStore.resetAllLocalData();
+    alert('Все локальные данные и снимки хранилища полностью очищены.');
     onClose();
   };
 
   const handleGrantParentBonus = () => {
-    gameStore.updateProfile(
-      gameState.profile.playerName,
-      gameState.profile.petName,
-      gameState.profile.appearance
-    );
-    // Add bonus allowance from parent
-    const st = gameStore.getState();
-    st.coins += 15;
-    st.petState.mood = Math.min(100, st.petState.mood + 15);
-    st.petState.statusText = 'Родители похвалили за успехи: начислено +15 монет!';
-    gameStore.save();
+    gameStore.grantParentBonus(15, 'Поощрение от родителей за успехи');
     alert('Начислено +15 карманных монет за успехи и помощь по дому!');
   };
 
@@ -227,6 +237,35 @@ export const ParentZoneModal: React.FC<ParentZoneModalProps> = ({ visible, onClo
                         </Text>
                       </TouchableOpacity>
                     </View>
+
+                    {/* Pet Progression Metrics Checklist */}
+                    <View style={styles.progressionCard}>
+                      <Text style={styles.progressionTitle}>
+                        Развитие питомца: {devEvaluation.stageTitle}
+                      </Text>
+                      <Text style={styles.progressionSubtitle}>
+                        {devEvaluation.stageSubtitle}
+                      </Text>
+
+                      {devEvaluation.nextStageInfo && (
+                        <View style={styles.nextStageSection}>
+                          <Text style={styles.nextStageHeading}>
+                            Критерии перехода к «{devEvaluation.nextStageInfo.targetTitle}»:
+                          </Text>
+                          {devEvaluation.nextStageInfo.checklist.map((item) => (
+                            <View key={item.key} style={styles.criteriaRow}>
+                              <Text style={item.met ? styles.criteriaIconMet : styles.criteriaIconUnmet}>
+                                {item.met ? '✓' : '○'}
+                              </Text>
+                              <Text style={styles.criteriaTitle}>{item.title}:</Text>
+                              <Text style={[styles.criteriaValue, item.met && styles.criteriaValueMet]}>
+                                {item.current} / {item.required} {item.unit}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
                   </View>
                 )}
 
@@ -261,15 +300,40 @@ export const ParentZoneModal: React.FC<ParentZoneModalProps> = ({ visible, onClo
                       </Text>
                     </View>
 
+                    <Text style={styles.sectionHeading}>Настройки графики и анимаций</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.animToggleBtn,
+                        animationsEnabled ? styles.animToggleBtnActive : styles.animToggleBtnInactive,
+                      ]}
+                      onPress={handleToggleAnimations}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.animToggleBtnText}>
+                        {animationsEnabled
+                          ? '🎬 Анимации питомца: ВКЛЮЧЕНЫ'
+                          : '⏸️ Анимации питомца: ВЫКЛЮЧЕНЫ (Статика)'}
+                      </Text>
+                    </TouchableOpacity>
+
                     <Text style={styles.sectionHeading}>Управление экспертным профилем</Text>
 
                     <TouchableOpacity
                       style={styles.resetBtn}
-                      onPress={handleResetProfile}
+                      onPress={handleResetDemoProfile}
                       activeOpacity={0.85}
                     >
                       <IconRefresh size={20} color="#FFFFFF" />
-                      <Text style={styles.resetBtnText}>Сбросить тестовый профиль к началу</Text>
+                      <Text style={styles.resetBtnText}>Сбросить демо-профиль к началу</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.resetBtn, { backgroundColor: '#7F1D1D', marginTop: -10 }]}
+                      onPress={handleResetAllData}
+                      activeOpacity={0.85}
+                    >
+                      <IconRefresh size={20} color="#FFFFFF" />
+                      <Text style={styles.resetBtnText}>Сбросить все локальные данные (Wipe)</Text>
                     </TouchableOpacity>
 
                     <View style={styles.demoInfoList}>
@@ -558,6 +622,92 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  progressionCard: {
+    backgroundColor: '#F0FDF4',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+    marginTop: 14,
+    marginBottom: 10,
+  },
+  progressionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#166534',
+    marginBottom: 4,
+  },
+  progressionSubtitle: {
+    fontSize: 12,
+    color: '#15803D',
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  nextStageSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    gap: 8,
+  },
+  nextStageHeading: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  criteriaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  criteriaIconMet: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#16A34A',
+    width: 16,
+    textAlign: 'center',
+  },
+  criteriaIconUnmet: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#94A3B8',
+    width: 16,
+    textAlign: 'center',
+  },
+  criteriaTitle: {
+    fontSize: 12,
+    color: '#334155',
+    flex: 1,
+  },
+  criteriaValue: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  criteriaValueMet: {
+    color: '#16A34A',
+  },
+  animToggleBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  animToggleBtnActive: {
+    backgroundColor: '#3B82F6',
+  },
+  animToggleBtnInactive: {
+    backgroundColor: '#64748B',
+  },
+  animToggleBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   termCard: {
     backgroundColor: '#F8FAFC',

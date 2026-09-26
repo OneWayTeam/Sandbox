@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
   profileTextContainer: {
     marginLeft: 10,
     justifyContent: 'center',
+    maxWidth: 130,
   },
   profileName: {
     color: '#FFFFFF',

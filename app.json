@@ -1,10 +1,20 @@
 {
   "expo": {
-    "name": "Finny Game",
-    "slug": "finny-game",
+    "name": "Питомец Финни",
+    "slug": "finny-pet",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/avatar.png",
+    "android": {
+      "package": "ru.finny.petgame",
+      "versionCode": 1,
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/avatar.png",
+        "backgroundColor": "#FAF5EE"
+      }
+    },
     "web": {
       "favicon": "./assets/coin.png"
     }

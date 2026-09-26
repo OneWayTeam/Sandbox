@@ -61,27 +61,29 @@ export const PeriodSummaryModal: React.FC<PeriodSummaryModalProps> = ({
                   : 'Период завершён!'}
               </Text>
               <Text style={styles.disciplineDesc}>
-                {summary.disciplined
-                  ? 'Ты обеспечил питомца всем необходимым и регулярно откладывал в копилку цели!'
-                  : 'В следующем периоде постарайся заранее закрыть обязательные траты и пополнить цель.'}
+                {summary.teachableMoment ||
+                  (summary.disciplined
+                    ? 'Ты обеспечил питомца всем необходимым и регулярно откладывал в копилку цели!'
+                    : 'В следующем периоде постарайся заранее закрыть обязательные траты и пополнить цель.')}
               </Text>
             </View>
 
-            {/* Plan vs Fact table (ТЗ 2.5.5) */}
-            <Text style={styles.tableHeading}>Сравнение плана и факта (ТЗ 2.5.5):</Text>
+            {/* Plan vs Fact vs Variance table (ТЗ 2.5.5) */}
+            <Text style={styles.tableHeading}>Сравнение плана, факта и отклонений:</Text>
             <View style={styles.tableBox}>
               <View style={styles.tableRowHeader}>
-                <Text style={styles.thCol}>Направление</Text>
+                <Text style={styles.thCol}>Статья</Text>
                 <Text style={styles.thColCenter}>План</Text>
-                <Text style={styles.thColRight}>Факт</Text>
+                <Text style={styles.thColCenter}>Факт</Text>
+                <Text style={styles.thColRight}>Дельта</Text>
               </View>
 
               <View style={styles.tableRow}>
-                <Text style={styles.tdColName}>Обязательные (еда, уход)</Text>
+                <Text style={styles.tdColName}>Обязательные</Text>
                 <Text style={styles.tdColCenter}>{summary.plan.mandatory}</Text>
                 <Text
                   style={[
-                    styles.tdColRight,
+                    styles.tdColCenter,
                     summary.fact.mandatory >= summary.plan.mandatory
                       ? styles.colorGreen
                       : styles.colorOrange,
@@ -89,26 +91,45 @@ export const PeriodSummaryModal: React.FC<PeriodSummaryModalProps> = ({
                 >
                   {summary.fact.mandatory}
                 </Text>
-              </View>
-
-              <View style={styles.tableRow}>
-                <Text style={styles.tdColName}>Желания (творчество, декор)</Text>
-                <Text style={styles.tdColCenter}>{summary.plan.discretionary}</Text>
-                <Text style={styles.tdColRight}>{summary.fact.discretionary}</Text>
-              </View>
-
-              <View style={styles.tableRow}>
-                <Text style={styles.tdColName}>Накопления в цель</Text>
-                <Text style={styles.tdColCenter}>{summary.plan.savings}</Text>
                 <Text
                   style={[
                     styles.tdColRight,
+                    summary.variance.mandatory >= 0 ? styles.colorGreen : styles.colorOrange,
+                  ]}
+                >
+                  {summary.variance.mandatory > 0 ? `+${summary.variance.mandatory}` : summary.variance.mandatory}
+                </Text>
+              </View>
+
+              <View style={styles.tableRow}>
+                <Text style={styles.tdColName}>Желания</Text>
+                <Text style={styles.tdColCenter}>{summary.plan.discretionary}</Text>
+                <Text style={styles.tdColCenter}>{summary.fact.discretionary}</Text>
+                <Text style={styles.tdColRight}>
+                  {summary.variance.discretionary > 0 ? `+${summary.variance.discretionary}` : summary.variance.discretionary}
+                </Text>
+              </View>
+
+              <View style={styles.tableRow}>
+                <Text style={styles.tdColName}>В цель</Text>
+                <Text style={styles.tdColCenter}>{summary.plan.savings}</Text>
+                <Text
+                  style={[
+                    styles.tdColCenter,
                     summary.fact.savings >= summary.plan.savings
                       ? styles.colorGreen
                       : styles.colorOrange,
                   ]}
                 >
                   {summary.fact.savings}
+                </Text>
+                <Text
+                  style={[
+                    styles.tdColRight,
+                    summary.variance.savings >= 0 ? styles.colorGreen : styles.colorOrange,
+                  ]}
+                >
+                  {summary.variance.savings > 0 ? `+${summary.variance.savings}` : summary.variance.savings}
                 </Text>
               </View>
             </View>

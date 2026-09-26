@@ -164,6 +164,8 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
       {/* 8. BOTTOM SECTION: Goal Card */}
       <View style={styles.bottomSection} pointerEvents="box-none">
         <GoalCard
+          title={activeGoal.title}
+          category={activeGoal.category}
           currentCoins={activeGoal.savedAmount}
           totalCoins={activeGoal.totalCost}
           percentage={percentage}

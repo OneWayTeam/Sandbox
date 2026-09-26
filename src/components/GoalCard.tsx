@@ -5,6 +5,8 @@ import { COLORS } from '../theme/colors';
 import { IconSparkleStar } from './GameIcons';
 
 interface GoalCardProps {
+  title?: string;
+  category?: string;
   currentCoins?: number;
   totalCoins?: number;
   percentage?: number;
@@ -12,6 +14,8 @@ interface GoalCardProps {
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
+  title = 'На набор красок',
+  category = 'Комната юного художника',
   currentCoins = 32,
   totalCoins = 160,
   percentage = 20,
@@ -67,8 +71,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
 
           {/* Texts */}
           <View style={styles.textCol}>
-            <Text style={styles.goalTitle}>На набор красок</Text>
-            <Text style={styles.goalSubtitle}>Комната юного художника</Text>
+            <Text style={styles.goalTitle} numberOfLines={1}>{title}</Text>
+            <Text style={styles.goalSubtitle} numberOfLines={1}>{category}</Text>
           </View>
 
           {/* Status Badge */}

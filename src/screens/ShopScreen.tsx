@@ -43,12 +43,30 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({
   onBackToRoom,
   onNavigateToTasks,
 }) => {
-  const [filterType, setFilterType] = useState<'all' | 'mandatory' | 'discretionary'>('all');
+  const [filterType, setFilterType] = useState<
+    'all' | 'mandatory' | 'discretionary' | 'clothes' | 'furniture' | 'art' | 'inventory'
+  >('all');
   const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
 
+  React.useEffect(() => {
+    if (subCategory === 'clothes' || subCategory === 'furniture' || subCategory === 'art' || subCategory === 'inventory') {
+      setFilterType(subCategory);
+    }
+  }, [subCategory]);
+
   const items = INITIAL_SHOP_ITEMS;
-  const filteredItems =
-    filterType === 'all' ? items : items.filter((i) => i.type === filterType);
+  const purchasedIds = gameStore.getState().purchasedItemIds || [];
+  const purchasedItems = items.filter((i) => purchasedIds.includes(i.id));
+
+  const filteredItems = (() => {
+    if (filterType === 'all') return items;
+    if (filterType === 'mandatory') return items.filter((i) => i.type === 'mandatory');
+    if (filterType === 'discretionary') return items.filter((i) => i.type === 'discretionary');
+    if (filterType === 'clothes') return items.filter((i) => i.category === 'clothes');
+    if (filterType === 'furniture') return items.filter((i) => i.category === 'furniture');
+    if (filterType === 'art') return items.filter((i) => i.category === 'art');
+    return items;
+  })();
 
   const getItemIcon = (iconName: string) => {
     switch (iconName) {
@@ -117,8 +135,12 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({
 
       {/* Bottom Catalog Drawer */}
       <View style={styles.catalogDrawer}>
-        {/* Category Tabs (ТЗ 2.5.6: Обязательные vs Необязательные) */}
-        <View style={styles.catRow}>
+        {/* Category Tabs (ТЗ 2.5.6: Обязательные vs Необязательные vs Рюкзак) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catRow}
+        >
           <TouchableOpacity
             style={[styles.catChip, filterType === 'all' && styles.catChipActive]}
             onPress={() => setFilterType('all')}
@@ -158,65 +180,123 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({
               Желания (радость)
             </Text>
           </TouchableOpacity>
-        </View>
 
-        {/* Items List */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.itemScroll}
-        >
-          {filteredItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.itemCard}
-              onPress={() => setSelectedItem(item)}
-              activeOpacity={0.85}
+          <TouchableOpacity
+            style={[
+              styles.catChip,
+              filterType === 'inventory' && styles.catChipActiveInventory,
+            ]}
+            onPress={() => setFilterType('inventory')}
+          >
+            <Text
+              style={[
+                styles.catText,
+                filterType === 'inventory' && styles.catTextActive,
+              ]}
             >
-              {/* Type pill */}
-              <View
-                style={[
-                  styles.itemTypeBadge,
-                  item.type === 'mandatory'
-                    ? styles.badgeMandatory
-                    : styles.badgeDiscretionary,
-                ]}
+              Рюкзак ({purchasedItems.length})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {filterType === 'inventory' ? (
+          purchasedItems.length === 0 ? (
+            <View style={styles.emptyInventory}>
+              <Text style={styles.emptyInvTitle}>Рюкзак пока пуст</Text>
+              <Text style={styles.emptyInvSub}>
+                Купи полезную еду или красивые вещи в лавке, чтобы они появились здесь!
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.itemScroll}
+            >
+              {purchasedItems.map((item) => (
+                <View key={item.id} style={styles.itemCard}>
+                  <View style={styles.purchasedTag}>
+                    <Text style={styles.purchasedTagText}>Куплено</Text>
+                  </View>
+                  <View style={styles.iconCircle}>{getItemIcon(item.iconName)}</View>
+                  <Text style={styles.itemTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.equipBtn}
+                    onPress={() => {
+                      const res = gameStore.equipItem(item.id);
+                      alert(res.message);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.equipBtnText}>
+                      {item.category === 'clothes' ? 'Надеть' : item.category === 'food' ? 'Покормить' : 'Применить'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )
+        ) : (
+          /* Catalog Items List */
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.itemScroll}
+          >
+            {filteredItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.itemCard}
+                onPress={() => setSelectedItem(item)}
+                activeOpacity={0.85}
               >
-                <Text
+                {/* Type pill */}
+                <View
                   style={[
-                    styles.itemTypeBadgeText,
+                    styles.itemTypeBadge,
                     item.type === 'mandatory'
-                      ? styles.badgeTextMandatory
-                      : styles.badgeTextDiscretionary,
+                      ? styles.badgeMandatory
+                      : styles.badgeDiscretionary,
                   ]}
                 >
-                  {item.type === 'mandatory' ? 'Обязательное' : 'Желание'}
+                  <Text
+                    style={[
+                      styles.itemTypeBadgeText,
+                      item.type === 'mandatory'
+                        ? styles.badgeTextMandatory
+                        : styles.badgeTextDiscretionary,
+                    ]}
+                  >
+                    {item.type === 'mandatory' ? 'Обязательное' : 'Желание'}
+                  </Text>
+                </View>
+
+                <View style={styles.iconCircle}>{getItemIcon(item.iconName)}</View>
+
+                <Text style={styles.itemTitle} numberOfLines={1}>
+                  {item.title}
                 </Text>
-              </View>
 
-              <View style={styles.iconCircle}>{getItemIcon(item.iconName)}</View>
+                {/* Impact hint */}
+                <Text style={styles.impactHint}>
+                  {item.satietyBoost > 0
+                    ? `+${item.satietyBoost}% сытости`
+                    : `+${item.moodBoost}% радости`}
+                </Text>
 
-              <Text style={styles.itemTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-
-              {/* Impact hint */}
-              <Text style={styles.impactHint}>
-                {item.satietyBoost > 0
-                  ? `+${item.satietyBoost}% сытости`
-                  : `+${item.moodBoost}% радости`}
-              </Text>
-
-              <View style={styles.priceRow}>
-                <Image
-                  source={require('../../assets/coin.png')}
-                  style={styles.smallCoin}
-                />
-                <Text style={styles.priceText}>{item.price}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <View style={styles.priceRow}>
+                  <Image
+                    source={require('../../assets/coin.png')}
+                    style={styles.smallCoin}
+                  />
+                  <Text style={styles.priceText}>{item.price}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {/* Interactive Purchase & Shortage Modal */}
@@ -447,5 +527,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: '#0F172A',
+  },
+  catChipActiveInventory: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#7C3AED',
+  },
+  emptyInventory: {
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    marginHorizontal: 16,
+  },
+  emptyInvTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#334155',
+    marginBottom: 4,
+  },
+  emptyInvSub: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  purchasedTag: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  purchasedTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  equipBtn: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 10,
+    marginTop: 6,
+    width: '100%',
+    alignItems: 'center',
+  },
+  equipBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });
