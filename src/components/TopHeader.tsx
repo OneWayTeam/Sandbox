@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Platform } from 'react-native';
 import { COLORS } from '../theme/colors';
 import { IconGear } from './GameIcons';
+import { PetAppearance } from '../types/gameTypes';
+import { PetAvatar } from './PetAvatar';
 
 interface TopHeaderProps {
   coins?: number;
@@ -9,6 +11,7 @@ interface TopHeaderProps {
   playerName?: string;
   stageTitle?: string;
   avatarSource?: any;
+  appearance?: PetAppearance;
   onPressProfile?: () => void;
   onPressSettings?: () => void;
 }
@@ -17,8 +20,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   coins = 5,
   period = 5,
   playerName = 'Зайка',
-  stageTitle = 'Художник',
+  stageTitle = 'Юный финансист',
   avatarSource,
+  appearance,
   onPressProfile,
   onPressSettings,
 }) => {
@@ -33,11 +37,15 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           style={styles.profilePill}
         >
           <View style={styles.avatarBorder}>
-            <Image
-              source={avatarSource || require('../../assets/avatar.png')}
-              style={styles.avatarImg}
-              resizeMode="cover"
-            />
+            {appearance ? (
+              <PetAvatar appearance={appearance} size={34} />
+            ) : (
+              <Image
+                source={avatarSource || require('../../assets/avatar.png')}
+                style={styles.avatarImg}
+                resizeMode="cover"
+              />
+            )}
           </View>
           <View style={styles.profileTextContainer}>
             <Text style={styles.profileName} numberOfLines={1}>{playerName}</Text>

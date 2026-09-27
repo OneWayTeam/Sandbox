@@ -188,7 +188,7 @@ export const EDUCATIONAL_SHOP_ITEMS: EducationalShopItem[] = [
     price: 14,
     category: 'decoration',
     categoryLabel: 'Украшения интерьера',
-    description: 'Живое комнатное растение делает комнату кролика по-домашнему уютной.',
+    description: 'Живое комнатное растение делает комнату питомца по-домашнему уютной.',
     type: 'discretionary',
     petEffect: {
       satietyBoost: 0,
@@ -215,7 +215,7 @@ export const EDUCATIONAL_SHOP_ITEMS: EducationalShopItem[] = [
     petEffect: {
       satietyBoost: 0,
       moodBoost: 25,
-      description: 'Уютный шарф согревает Финни на прогулках (+25% настроения).',
+      description: 'Уютный шарф согревает питомца на прогулках (+25% настроения).',
     },
     availability: true,
     periodRestrictions: { minPeriod: 1 },
@@ -224,20 +224,20 @@ export const EDUCATIONAL_SHOP_ITEMS: EducationalShopItem[] = [
     moodBoost: 25,
   },
 
-  // 9. АКСЕССУАР: Берет художника
+  // 9. АКСЕССУАР: Бордовый берет
   {
     id: 'clothes_beret',
-    name: 'Берет художника',
-    title: 'Берет художника',
+    name: 'Бордовый берет',
+    title: 'Бордовый берет',
     price: 22,
     category: 'accessory',
     categoryLabel: 'Аксессуары и одежда',
-    description: 'Бордовый французский берет придает Финни образ истинного мастера живописи.',
+    description: 'Стильный бордовый берет придает питомцу изысканный образ.',
     type: 'discretionary',
     petEffect: {
       satietyBoost: 0,
       moodBoost: 30,
-      description: 'Финни чувствует себя вдохновленным творцом (+30% настроения).',
+      description: 'Питомец чувствует себя вдохновленным (+30% настроения).',
     },
     availability: true,
     periodRestrictions: { minPeriod: 1 },

@@ -70,7 +70,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
     },
     {
       id: 'ach_save',
-      title: 'Бережливый кролик',
+      title: 'Бережливый компаньон',
       description: 'Отложи первые монеты в золотой сейф мечты',
       iconName: 'target',
       unlocked: state.savings > 0 || (activeGoal && activeGoal.savedAmount > 0),
@@ -79,7 +79,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
     {
       id: 'ach_care',
       title: 'Заботливый друг',
-      description: 'Купи обязательную здоровую еду или щётку для Финни',
+      description: 'Купи обязательную здоровую еду или щётку для питомца',
       iconName: 'apple',
       unlocked: state.budgetFact.mandatory > 0,
       rewardCoins: 5,

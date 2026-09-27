@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Platform } from 'react-native';
 import { COLORS } from '../theme/colors';
 
 interface FloatingActionsProps {
@@ -100,12 +100,12 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    right: 14,
-    top: 98,
+    right: 12,
+    top: Platform.OS === 'ios' ? 240 : 204,
     zIndex: 15,
     flexDirection: 'column',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   itemWrapper: {
     alignItems: 'center',

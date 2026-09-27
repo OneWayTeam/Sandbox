@@ -12,6 +12,7 @@ import { PetAssetRegistry } from '../pet/petAssetRegistry';
 import { IconSparkleStar, IconHeart, IconClover, IconCheck } from './GameIcons';
 import { PetAppearance, PetStage, PetMoodState, PetReactionEvent } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
+import { VectorPetRenderer } from './pet/VectorPetRenderer';
 
 interface FinnyCharacterProps {
   currentAnimation?: PetAnimationType;
@@ -166,7 +167,7 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
     // Trigger reaction bubble with smooth fade & float
     setActiveReaction({
       type: 'tap',
-      message: 'Привет! 🐾',
+      message: 'Привет!',
       timestamp: Date.now(),
     });
     reactionAnim.setValue(0);
@@ -308,56 +309,15 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
           ]}
         >
           <View style={styles.characterImgContainer} pointerEvents="none">
-            {/* 1. Base Photorealistic Character Layer */}
-            <Image
-              source={layers.basePhotoSource}
-              style={[
-                StyleSheet.absoluteFill,
-                styles.characterImg,
-                {
-                  opacity: layers.actionPhotoSource ? 0 : 1,
-                },
-              ]}
-              resizeMode="contain"
+            <VectorPetRenderer
+              species={currentAppearance.characterId || 'rabbit'}
+              appearance={currentAppearance}
+              animation={activeAnim}
+              moodState={currentMoodState}
+              isBlinking={activeAnim === 'blink'}
+              width={240}
+              height={290}
             />
-
-            {/* 2. Action Photo Layer (if actively celebrating, eating, sleeping, waving, blink) */}
-            {layers.actionPhotoSource && (
-              <Image
-                source={layers.actionPhotoSource}
-                style={[
-                  StyleSheet.absoluteFill,
-                  styles.characterImg,
-                  { opacity: 1 },
-                ]}
-                resizeMode="contain"
-              />
-            )}
-
-            {/* 3. Visible Custom Brooch Badge on Sweater */}
-            {layers.accessoryBadge && !layers.actionPhotoSource && (
-              <View style={styles.accessoryBroochBox} pointerEvents="none">
-                <View
-                  style={[
-                    styles.broochCircle,
-                    {
-                      backgroundColor: layers.accessoryBadge.bgColor,
-                      borderColor: layers.accessoryBadge.borderColor,
-                    },
-                  ]}
-                >
-                  {layers.accessoryBadge.type === 'clover' && (
-                    <IconClover size={14} color={layers.accessoryBadge.iconColor} />
-                  )}
-                  {layers.accessoryBadge.type === 'star' && (
-                    <IconSparkleStar size={14} color={layers.accessoryBadge.iconColor} />
-                  )}
-                  {layers.accessoryBadge.type === 'brush' && (
-                    <Text style={{ fontSize: 11 }}>🖌️</Text>
-                  )}
-                </View>
-              </View>
-            )}
           </View>
         </Animated.View>
       </TouchableWithoutFeedback>

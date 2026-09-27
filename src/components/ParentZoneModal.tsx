@@ -328,8 +328,8 @@ export const ParentZoneModal: React.FC<ParentZoneModalProps> = ({ visible, onClo
                     >
                       <Text style={styles.animToggleBtnText}>
                         {animationsEnabled
-                          ? '🎬 Анимации питомца: ВКЛЮЧЕНЫ'
-                          : '⏸️ Анимации питомца: ВЫКЛЮЧЕНЫ (Статика)'}
+                          ? 'Анимации питомца: ВКЛЮЧЕНЫ'
+                          : 'Анимации питомца: ВЫКЛЮЧЕНЫ (Статика)'}
                       </Text>
                     </TouchableOpacity>
 

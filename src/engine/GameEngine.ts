@@ -72,6 +72,7 @@ export const createDefaultEngineState = (): EngineState => {
       playerName: 'Юный финансист',
       stage: 1,
       appearance: {
+        characterId: 'rabbit',
         sweaterColor: 'green',
         accessory: 'clover',
         hat: 'none',
@@ -82,10 +83,11 @@ export const createDefaultEngineState = (): EngineState => {
       satiety: 80,
       mood: 85,
       energy: 90,
-      statusText: 'Привет! Финни готов учиться финансовой грамотности!',
+      statusText: 'Привет! Твой финансовый питомец готов к приключениям!',
       moodState: 'happy',
     },
     petCustomization: {
+      characterId: 'rabbit',
       sweaterColor: 'green',
       accessory: 'clover',
       hat: 'none',
@@ -660,7 +662,7 @@ export class GameEngine {
 
       // Emit reaction on period completion or evolution
       if (stageAfter > stageBefore) {
-        this.emitReaction('stage_evolution', `Новая стадия развития: ${stageAfter}! 🎉`);
+        this.emitReaction('stage_evolution', `Новая стадия развития: ${stageAfter}!`);
       } else {
         this.emitReaction('period_finish', `Период ${pNum} успешно завершён!`);
       }
@@ -738,7 +740,7 @@ export class GameEngine {
       this.state.playerProfile.stage = stage;
 
       if (stage > prevStage) {
-        this.emitReaction('stage_evolution', devEval.celebrationText || `Новая стадия развития: ${stage}! 🎉`);
+        this.emitReaction('stage_evolution', devEval.celebrationText || `Новая стадия развития: ${stage}!`);
       }
 
       return { success: true, data: stage };

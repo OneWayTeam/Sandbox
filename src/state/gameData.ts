@@ -20,7 +20,7 @@ export const INITIAL_TASKS: FinancialTask[] = EDUCATIONAL_TASKS as any;
 export const PET_STAGES = [
   {
     stage: 1,
-    title: 'Малыш-художник',
+    title: 'Малыш-исследователь',
     subtitle: 'Учится отличать обязательные траты от желаний',
     minPeriods: 1,
     bonuses: '+5 монет к доходу периода',
@@ -35,7 +35,7 @@ export const PET_STAGES = [
   {
     stage: 3,
     title: 'Мастер-иллюстратор',
-    subtitle: 'Финансово грамотный кролик с собственной студией',
+    subtitle: 'Финансово грамотный компаньон с собственной студией',
     minPeriods: 5,
     bonuses: '+20 монет к доходу периода, статус Эксперта',
   },

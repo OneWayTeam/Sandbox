@@ -77,6 +77,7 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
         playerName={playerName}
         stageTitle={stageTitle}
         avatarSource={avatarSource}
+        appearance={appearance}
         onPressProfile={onOpenProfile}
         onPressSettings={onOpenParentZone}
       />
@@ -157,8 +158,13 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
       ) : null}
 
       {/* 5. FINNY'S THOUGHT BUBBLE / STATUS TEXT */}
-      <View style={styles.statusBubble}>
-        <Text style={styles.statusText}>{petState.statusText}</Text>
+      <View
+        style={[
+          styles.statusBubble,
+          !activeTask && styles.statusBubbleNoTask,
+        ]}
+      >
+        <Text style={styles.statusText} numberOfLines={2}>{petState.statusText}</Text>
       </View>
 
       {/* 6. FLOATING ACTION BUTTONS (Right Side) */}
@@ -354,12 +360,12 @@ const styles = StyleSheet.create({
   },
   statusBubble: {
     position: 'absolute',
-    top: 158,
+    top: 154,
     alignSelf: 'center',
-    maxWidth: '85%',
+    maxWidth: '82%',
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -368,19 +374,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
+    elevation: 2,
+  },
+  statusBubbleNoTask: {
+    top: 110,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#475569',
     textAlign: 'center',
+    lineHeight: 16,
   },
   characterContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: '20%',
-    bottom: '24%',
+    top: '22%',
+    bottom: '22%',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,

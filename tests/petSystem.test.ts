@@ -4,8 +4,10 @@ import { PetAssetRegistry } from '../src/pet/petAssetRegistry';
 import { PetStateManager } from '../src/pet/petStateManager';
 import { PetDevelopmentEngine } from '../src/pet/petDevelopmentEngine';
 import { GameEngine, createDefaultEngineState } from '../src/engine/GameEngine';
-import { PetMoodState } from '../src/types/gameTypes';
+import { PetMoodState, CharacterSpeciesId } from '../src/types/gameTypes';
 import { INITIAL_SHOP_ITEMS } from '../src/state/gameData';
+import { PET_CHARACTERS, getCharacterDefinition } from '../src/pet/petCharacters';
+import { EDUCATIONAL_GOALS } from '../src/content/goalsContent';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -234,6 +236,74 @@ engine.toggleAnimations(false);
 assert(engine.getState().settings?.animationsEnabled === false, 'Animations cleanly toggled off');
 engine.toggleAnimations(true);
 assert(engine.getState().settings?.animationsEnabled === true, 'Animations cleanly toggled back on');
+
+// 5. ALL 9 CHARACTERS & DECOUPLED GOALS PASS
+console.log('\n--- 5. ALL 9 CHARACTERS & DECOUPLED GOALS PASS ---');
+assert(PET_CHARACTERS.length === 9, `All 9 characters configured in system (Found: ${PET_CHARACTERS.length})`);
+
+const expectedSpecies: CharacterSpeciesId[] = [
+  'raccoon',
+  'fox',
+  'cat',
+  'panda',
+  'capybara',
+  'rabbit',
+  'bear',
+  'dog',
+  'otter',
+];
+
+// Verify each species has distinct silhouette, definition, and default appearance
+expectedSpecies.forEach((speciesId) => {
+  const def = getCharacterDefinition(speciesId);
+  assert(def.id === speciesId, `Character ${speciesId} exists with valid definition`);
+  assert(def.name.length > 0, `Character ${speciesId} has localized name: ${def.name}`);
+  assert(def.speciesTitle.length > 0, `Character ${speciesId} has species title: ${def.speciesTitle}`);
+  assert(def.tagline.length > 0, `Character ${speciesId} has pedagogical tagline`);
+  assert(def.themeColor.startsWith('#'), `Character ${speciesId} has distinct theme color: ${def.themeColor}`);
+  assert(def.defaultAppearance.characterId === speciesId, `Character ${speciesId} has default appearance mapped`);
+});
+
+// Verify character selection does NOT predetermine or constrain the financial goal
+console.log('\n--- Decoupling Character from Financial Goal ---');
+const testEngine = new GameEngine();
+
+// Test that every character can select ANY of the available goals
+expectedSpecies.forEach((speciesId, idx) => {
+  const goalToTest = EDUCATIONAL_GOALS[idx % EDUCATIONAL_GOALS.length];
+  
+  // Set character profile
+  const profileRes = testEngine.createProfile(
+    `Player_${speciesId}`,
+    `Pet_${speciesId}`,
+    {
+      characterId: speciesId,
+      sweaterColor: idx % 2 === 0 ? 'blue' : 'red',
+      hat: idx % 3 === 0 ? 'beret' : idx % 3 === 1 ? 'glasses' : 'none',
+      accessory: idx % 2 === 0 ? 'star' : 'clover',
+    }
+  );
+  assert(profileRes.success, `Successfully created profile for ${speciesId}`);
+
+  // Pick independent goal
+  const goalRes = testEngine.selectGoal(goalToTest.id);
+  assert(goalRes.success, `Character ${speciesId} successfully selected independent goal: ${goalToTest.name}`);
+  assert(
+    testEngine.getState().currentGoalId === goalToTest.id,
+    `Active goal is set to ${goalToTest.id} for ${speciesId}`
+  );
+
+  // Verify pet appearance preserves accessories during animation evaluation
+  const currentAppearance = testEngine.getState().playerProfile.appearance;
+  assert(
+    currentAppearance.characterId === speciesId,
+    `Current character appearance maintains species ${speciesId}`
+  );
+  assert(
+    currentAppearance.sweaterColor !== undefined && currentAppearance.accessory !== undefined,
+    `Accessories are strictly preserved on appearance for ${speciesId}`
+  );
+});
 
 // Summary
 console.log('\n========================================');

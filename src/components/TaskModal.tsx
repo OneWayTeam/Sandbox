@@ -91,12 +91,13 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                       : styles.diffHard,
                   ]}
                 >
+                  <IconSparkleStar size={13} color="#D97706" />
                   <Text style={styles.difficultyText}>
                     {(task as any).difficulty === 'easy'
-                      ? '⭐ Начальный'
+                      ? 'Начальный уровень'
                       : (task as any).difficulty === 'medium'
-                      ? '⭐⭐ Средний'
-                      : '⭐⭐⭐ Мастер'}
+                      ? 'Средний уровень'
+                      : 'Уровень Мастер'}
                   </Text>
                 </View>
               )}

@@ -1,6 +1,18 @@
 export type PetStage = 1 | 2 | 3; // 1: Малыш-новичок, 2: Юный мастер, 3: Мастер-иллюстратор
 
+export type CharacterSpeciesId =
+  | 'raccoon'
+  | 'fox'
+  | 'cat'
+  | 'panda'
+  | 'capybara'
+  | 'rabbit'
+  | 'bear'
+  | 'dog'
+  | 'otter';
+
 export interface PetAppearance {
+  characterId?: CharacterSpeciesId;
   sweaterColor: 'green' | 'blue' | 'red';
   accessory: 'clover' | 'star' | 'brush';
   hat: 'none' | 'beret' | 'glasses';

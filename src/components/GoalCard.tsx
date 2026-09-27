@@ -14,8 +14,8 @@ interface GoalCardProps {
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
-  title = 'На набор красок',
-  category = 'Комната юного художника',
+  title = 'Набор мечты',
+  category = 'Финансовая цель',
   currentCoins = 32,
   totalCoins = 160,
   percentage = 20,
@@ -50,7 +50,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   return (
     <View style={styles.wrapper}>
       {/* Title above card */}
-      <Text style={styles.sectionHeader}>Главная цель Финни</Text>
+      <Text style={styles.sectionHeader}>Твоя финансовая цель</Text>
 
       {/* Main Goal Card */}
       <TouchableOpacity

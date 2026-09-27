@@ -105,6 +105,10 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
         return <IconEasel size={24} />;
       case 'trophy':
         return <IconTrophy size={24} color="#D97706" />;
+      case 'palette':
+        return <IconPalette size={24} />;
+      case 'target':
+        return <IconTarget size={24} color="#7C3AED" />;
       default:
         return (
           <Image
@@ -230,7 +234,7 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
               {/* Time Horizon (без ложной точности) */}
               <Text style={styles.timeHorizonText}>
                 {remaining === 0
-                  ? 'Цель достигнута! Финни гордится своими сбережениями! 🎉'
+                  ? 'Цель достигнута! Питомец гордится твоими сбережениями!'
                   : `Осталось накопить: ${remaining} монет • ${estimate.displayText}`}
               </Text>
             </View>
