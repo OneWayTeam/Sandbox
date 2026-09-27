@@ -283,6 +283,13 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
               </View>
             ))}
           </ScrollView>
+        ) : filteredTasks.length === 0 ? (
+          <View style={styles.emptyTasksBox}>
+            <Text style={styles.emptyTasksTitle}>В этой теме пока нет заданий</Text>
+            <Text style={styles.emptyTasksSub}>
+              Выбери другую категорию или вернись к списку «Все», чтобы решить новые финансовые задачи!
+            </Text>
+          </View>
         ) : (
           <ScrollView style={styles.questScroll} showsVerticalScrollIndicator={false}>
             {filteredTasks.map((task) => (
@@ -596,5 +603,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
+  },
+  emptyTasksBox: {
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyTasksTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyTasksSub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

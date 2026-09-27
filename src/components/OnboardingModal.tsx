@@ -51,7 +51,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     currentProfile.appearance.hat || 'none'
   );
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleFinish = () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     const finalAppearance: PetAppearance = {
       sweaterColor,
       accessory,
@@ -60,6 +64,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     gameStore.completeOnboarding(playerName.trim() || 'Юный финансист', petName.trim() || 'Финни', finalAppearance);
     if (onComplete) onComplete();
     onClose();
+    setTimeout(() => setIsSubmitting(false), 500);
   };
 
   const getPreviewImage = () => {

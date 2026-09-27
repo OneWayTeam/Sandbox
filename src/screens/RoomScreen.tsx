@@ -123,7 +123,7 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
       </View>
 
       {/* 4. ACTIVE TASK SHORTCUT BANNER (ТЗ 2.5.3: Активное задание на главном экране) */}
-      {activeTask && !activeTask.completed && onOpenTaskPress && (
+      {activeTask && !activeTask.completed && onOpenTaskPress ? (
         <TouchableOpacity
           style={styles.activeTaskBanner}
           onPress={onOpenTaskPress}
@@ -142,7 +142,19 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
             <Text style={styles.taskBannerActionText}>Решить →</Text>
           </View>
         </TouchableOpacity>
-      )}
+      ) : activeTask && activeTask.completed ? (
+        <View style={styles.taskCompletedBanner}>
+          <View style={styles.taskCheckCircle}>
+            <IconCheck size={14} color="#FFFFFF" />
+          </View>
+          <View style={styles.taskBannerTextCol}>
+            <Text style={styles.taskCompletedTitle}>Задания периода выполнены!</Text>
+            <Text style={styles.taskCompletedDesc} numberOfLines={1}>
+              Все награды получены. Утверди бюджет в разделе «План»!
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       {/* 5. FINNY'S THOUGHT BUBBLE / STATUS TEXT */}
       <View style={styles.statusBubble}>
@@ -300,6 +312,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  taskCompletedBanner: {
+    position: 'absolute',
+    top: 108,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(240, 253, 244, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    gap: 8,
+    zIndex: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  taskCheckCircle: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#16A34A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taskCompletedTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  taskCompletedDesc: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#166534',
   },
   statusBubble: {
     position: 'absolute',

@@ -238,6 +238,13 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({
               ))}
             </ScrollView>
           )
+        ) : filteredItems.length === 0 ? (
+          <View style={styles.emptyInventory}>
+            <Text style={styles.emptyInvTitle}>В этой категории пока пусто</Text>
+            <Text style={styles.emptyInvSub}>
+              Попробуй переключить категорию выше, чтобы увидеть доступные товары!
+            </Text>
+          </View>
         ) : (
           /* Catalog Items List */
           <ScrollView

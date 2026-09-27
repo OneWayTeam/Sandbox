@@ -63,21 +63,38 @@ export const ParentZoneModal: React.FC<ParentZoneModalProps> = ({ visible, onClo
     }
   };
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const handleResetDemoProfile = async () => {
-    await gameStore.resetTestProfile();
-    alert('Тестовый профиль демо-режима успешно сброшен к исходному детерминированному состоянию.');
-    onClose();
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await gameStore.resetTestProfile();
+      alert('Тестовый профиль демо-режима успешно сброшен к исходному детерминированному состоянию.');
+      onClose();
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
   };
 
   const handleResetAllData = async () => {
-    await gameStore.resetAllLocalData();
-    alert('Все локальные данные и снимки хранилища полностью очищены.');
-    onClose();
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await gameStore.resetAllLocalData();
+      alert('Все локальные данные и снимки хранилища полностью очищены.');
+      onClose();
+    } finally {
+      setTimeout(() => setIsProcessing(false), 500);
+    }
   };
 
   const handleGrantParentBonus = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     gameStore.grantParentBonus(15, 'Поощрение от родителей за успехи');
     alert('Начислено +15 карманных монет за успехи и помощь по дому!');
+    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleClose = () => {
