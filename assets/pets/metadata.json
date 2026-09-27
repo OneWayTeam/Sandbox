@@ -1,0 +1,83 @@
+{
+  "raccoon": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 390,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "fox": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 318,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "cat": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 343,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "panda": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 304,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "capybara": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 274,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "rabbit": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 211,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "bear": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 265,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "dog": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 324,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  },
+  "otter": {
+    "canvasWidth": 400,
+    "canvasHeight": 480,
+    "baselineY": 465,
+    "bodyWidth": 278,
+    "bodyHeight": 440,
+    "anchorX": 200,
+    "anchorY": 465
+  }
+}

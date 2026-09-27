@@ -8,6 +8,7 @@ import { PetMoodState, CharacterSpeciesId } from '../src/types/gameTypes';
 import { INITIAL_SHOP_ITEMS } from '../src/state/gameData';
 import { PET_CHARACTERS, getCharacterDefinition } from '../src/pet/petCharacters';
 import { EDUCATIONAL_GOALS } from '../src/content/goalsContent';
+import { PET_ART_CHARACTERS, getCharacterArt, PET_ACCESSORY_ASSETS } from '../src/pet/petArtAssets';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -262,7 +263,17 @@ expectedSpecies.forEach((speciesId) => {
   assert(def.tagline.length > 0, `Character ${speciesId} has pedagogical tagline`);
   assert(def.themeColor.startsWith('#'), `Character ${speciesId} has distinct theme color: ${def.themeColor}`);
   assert(def.defaultAppearance.characterId === speciesId, `Character ${speciesId} has default appearance mapped`);
+
+  // Assert Real Art Assets
+  const art = getCharacterArt(speciesId);
+  assert(art.id === speciesId, `Real Art defined for ${speciesId}`);
+  assert(art.canvasDimensions.baselineY === 465, `Standard ground baseline Y=465 anchored for ${speciesId}`);
 });
+
+assert(PET_ACCESSORY_ASSETS.shadow !== null, 'Ground contact shadow asset registered');
+assert(PET_ACCESSORY_ASSETS.hats.beret !== null, 'Beret accessory asset registered');
+assert(PET_ACCESSORY_ASSETS.hats.glasses !== null, 'Glasses accessory asset registered');
+assert(PET_ACCESSORY_ASSETS.brooches.clover !== null, 'Clover brooch accessory asset registered');
 
 // Verify character selection does NOT predetermine or constrain the financial goal
 console.log('\n--- Decoupling Character from Financial Goal ---');

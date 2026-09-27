@@ -12,7 +12,7 @@ import { PetAssetRegistry } from '../pet/petAssetRegistry';
 import { IconSparkleStar, IconHeart, IconClover, IconCheck } from './GameIcons';
 import { PetAppearance, PetStage, PetMoodState, PetReactionEvent } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
-import { VectorPetRenderer } from './pet/VectorPetRenderer';
+import { RealArtPetRenderer } from './pet/RealArtPetRenderer';
 
 interface FinnyCharacterProps {
   currentAnimation?: PetAnimationType;
@@ -233,19 +233,6 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
       accessibilityRole="image"
       accessibilityLabel={layers.accessibilityDescription}
     >
-      {/* Contact Shadow beneath paws on the rug */}
-      <Animated.View
-        style={[
-          styles.shadow,
-          animationsEnabled && {
-            transform: [
-              { scaleX: shadowScale },
-              { scaleY: shadowScale },
-            ],
-          },
-        ]}
-      />
-
       {/* Floating Reaction Bubble for Income, Purchase, Savings, Tasks, Stage Growth, Tap */}
       {activeReaction && (
         <Animated.View
@@ -291,35 +278,22 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
         </Animated.View>
       )}
 
-      {/* Interactive Character with Breathing & Jump */}
+      {/* Interactive Real Art Character with Natural Animation & Ground Contact */}
       <TouchableWithoutFeedback onPress={handleTap}>
-        <Animated.View
-          style={[
-            styles.characterWrapper,
-            animationsEnabled
-              ? {
-                  transform: [
-                    { translateY: jumpAnim },
-                    { scaleY: breathAnimY },
-                    { scaleX: breathAnimX },
-                  ],
-                }
-              : {},
-            { cursor: 'pointer' } as any,
-          ]}
-        >
-          <View style={styles.characterImgContainer} pointerEvents="none">
-            <VectorPetRenderer
-              species={currentAppearance.characterId || 'rabbit'}
-              appearance={currentAppearance}
-              animation={activeAnim}
-              moodState={currentMoodState}
-              isBlinking={activeAnim === 'blink'}
-              width={240}
-              height={290}
-            />
-          </View>
-        </Animated.View>
+        <View style={styles.characterTouchZone}>
+          <RealArtPetRenderer
+            species={currentAppearance.characterId || 'rabbit'}
+            appearance={currentAppearance}
+            animation={activeAnim}
+            moodState={currentMoodState}
+            width={240}
+            height={288}
+            jumpAnim={jumpAnim}
+            shadowScale={shadowScale}
+            breathAnimY={animationsEnabled ? breathAnimY : undefined}
+            breathAnimX={animationsEnabled ? breathAnimX : undefined}
+          />
+        </View>
       </TouchableWithoutFeedback>
 
       {/* Accessible Mood & Stage Status Pill (Never communicates critically through animation alone) */}
@@ -404,6 +378,10 @@ const styles = StyleSheet.create({
   reactionCoinIcon: {
     width: 16,
     height: 16,
+  },
+  characterTouchZone: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   accessoryBroochBox: {
     position: 'absolute',

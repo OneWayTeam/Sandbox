@@ -23,7 +23,8 @@ import {
 import { PetAppearance, CharacterSpeciesId, FinancialGoal } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
 import { PET_CHARACTERS, getCharacterDefinition } from '../pet/petCharacters';
-import { VectorPetRenderer } from './pet/VectorPetRenderer';
+import { RealArtPetRenderer } from './pet/RealArtPetRenderer';
+import { getCharacterArt } from '../pet/petArtAssets';
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -207,12 +208,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               <View style={styles.stepTwoContent}>
                 {/* Live Companion Preview Card */}
                 <View style={styles.livePreviewCard}>
-                  <VectorPetRenderer
+                  <RealArtPetRenderer
                     species={selectedSpecies}
                     appearance={activeAppearance}
                     animation="happy"
                     width={180}
-                    height={210}
+                    height={216}
                   />
                   <View style={styles.petBioTag}>
                     <Text style={styles.petBioName}>{currentCharacterDef.name}</Text>
@@ -226,6 +227,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.speciesScroll}>
                   {PET_CHARACTERS.map((char) => {
                     const isSelected = selectedSpecies === char.id;
+                    const charArt = getCharacterArt(char.id);
                     return (
                       <TouchableOpacity
                         key={char.id}
@@ -238,16 +240,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         activeOpacity={0.85}
                       >
                         <View style={[styles.speciesAvatarCircle, { backgroundColor: char.badgeBg }]}>
-                          <VectorPetRenderer
-                            species={char.id}
-                            appearance={{
-                              characterId: char.id,
-                              sweaterColor: char.defaultAppearance.sweaterColor,
-                              accessory: 'clover',
-                              hat: 'none',
-                            }}
-                            width={54}
-                            height={62}
+                          <Image
+                            source={charArt.thumbSource}
+                            style={styles.speciesThumbImg}
+                            resizeMode="contain"
                           />
                         </View>
                         <Text style={[styles.speciesCardTitle, isSelected && styles.speciesCardTitleActive]}>
@@ -708,6 +704,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 6,
     overflow: 'hidden',
+  },
+  speciesThumbImg: {
+    width: 54,
+    height: 54,
   },
   speciesCardTitle: {
     fontSize: 11,

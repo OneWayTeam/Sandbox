@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { PetAppearance, CharacterSpeciesId } from '../types/gameTypes';
-import { VectorPetRenderer } from './pet/VectorPetRenderer';
+import { getCharacterArt } from '../pet/petArtAssets';
 import { getCharacterDefinition } from '../pet/petCharacters';
 
 interface PetAvatarProps {
@@ -16,14 +16,8 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
   size = 38,
 }) => {
   const resolvedSpecies = species || appearance?.characterId || 'rabbit';
+  const charArt = getCharacterArt(resolvedSpecies);
   const charDef = getCharacterDefinition(resolvedSpecies);
-
-  // VectorPetRenderer is 240 width x 290 height.
-  // Head is centered at ~cx=120, cy=118, radius ~54.
-  // We want the head & upper chest to fill the circular avatar container.
-  const scale = (size * 1.5) / 120;
-  const rendererWidth = 240 * scale;
-  const rendererHeight = 290 * scale;
 
   return (
     <View
@@ -38,23 +32,14 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
         },
       ]}
     >
-      <View
+      <Image
+        source={charArt.thumbSource}
         style={{
-          width: rendererWidth,
-          height: rendererHeight,
-          position: 'absolute',
-          top: -38 * scale,
-          left: (size - rendererWidth) / 2,
+          width: size * 1.15,
+          height: size * 1.15,
         }}
-      >
-        <VectorPetRenderer
-          species={resolvedSpecies}
-          appearance={appearance}
-          width={rendererWidth}
-          height={rendererHeight}
-          animation="idle"
-        />
-      </View>
+        resizeMode="contain"
+      />
     </View>
   );
 };
