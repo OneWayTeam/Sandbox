@@ -216,7 +216,24 @@ export class PetAssetRegistry {
       this.ACCESSORY_OPTIONS.find((a) => a.id === appearance.accessory)?.title ||
       appearance.accessory;
 
-    const accessibilityDescription = `Кролик Финни. Стадия: ${stageTitle}. Настроение: ${
+    // Resolve pet name dynamically from appearance
+    const petNameForA11y = appearance.characterId
+      ? ((): string => {
+          const speciesNames: Record<string, string> = {
+            raccoon: 'Енот Ричи',
+            fox: 'Лисёнок Фокс',
+            cat: 'Кот Барсик',
+            panda: 'Панда Бао',
+            capybara: 'Капибара Капи',
+            rabbit: 'Кролик Финни',
+            bear: 'Медвежонок Миша',
+            dog: 'Щенок Дружок',
+            otter: 'Выдра Луки',
+          };
+          return speciesNames[appearance.characterId!] || 'Питомец';
+        })()
+      : 'Питомец';
+    const accessibilityDescription = `${petNameForA11y}. Стадия: ${stageTitle}. Настроение: ${
       moodLabels[moodState]
     }. Одежда: ${sweaterTitle}, головной убор: ${hatTitle}, аксессуар: ${accTitle}.`;
 

@@ -17,6 +17,80 @@ interface RealArtPetRendererProps {
   breathAnimX?: Animated.Value;
 }
 
+/**
+ * Per-species accessory placement offsets.
+ * All values are in the base canvas coordinate space (400×480).
+ * The renderer scales them by (renderWidth / 400).
+ *
+ * beretTop / beretLeft / beretW / beretH   — Beret hat placement
+ * glassTop / glassLeft / glassW / glassH   — Glasses placement
+ * broochTop / broochLeft / broochW / broochH — Chest brooch placement
+ */
+interface SpeciesOffsets {
+  beretTop: number;
+  beretLeft: number;
+  beretW: number;
+  beretH: number;
+  glassTop: number;
+  glassLeft: number;
+  glassW: number;
+  glassH: number;
+  broochTop: number;
+  broochLeft: number;
+  broochW: number;
+  broochH: number;
+}
+
+const SPECIES_OFFSETS: Record<CharacterSpeciesId, SpeciesOffsets> = {
+  rabbit: {
+    beretTop: 4,  beretLeft: 126, beretW: 148, beretH: 120,
+    glassTop: 104, glassLeft: 124, glassW: 152, glassH: 80,
+    broochTop: 236, broochLeft: 174, broochW: 52, broochH: 52,
+  },
+  raccoon: {
+    beretTop: 2,  beretLeft: 122, beretW: 156, beretH: 124,
+    glassTop: 102, glassLeft: 118, glassW: 164, glassH: 82,
+    broochTop: 230, broochLeft: 170, broochW: 56, broochH: 56,
+  },
+  fox: {
+    beretTop: 0,  beretLeft: 124, beretW: 152, beretH: 120,
+    glassTop: 100, glassLeft: 120, glassW: 160, glassH: 80,
+    broochTop: 232, broochLeft: 172, broochW: 54, broochH: 54,
+  },
+  cat: {
+    beretTop: 6,  beretLeft: 130, beretW: 140, beretH: 116,
+    glassTop: 106, glassLeft: 126, glassW: 148, glassH: 78,
+    broochTop: 238, broochLeft: 176, broochW: 50, broochH: 50,
+  },
+  panda: {
+    beretTop: 4,  beretLeft: 118, beretW: 164, beretH: 128,
+    glassTop: 106, glassLeft: 114, glassW: 172, glassH: 84,
+    broochTop: 236, broochLeft: 172, broochW: 56, broochH: 56,
+  },
+  capybara: {
+    beretTop: 10, beretLeft: 112, beretW: 176, beretH: 130,
+    glassTop: 110, glassLeft: 108, glassW: 184, glassH: 86,
+    broochTop: 240, broochLeft: 168, broochW: 60, broochH: 60,
+  },
+  bear: {
+    beretTop: 0,  beretLeft: 116, beretW: 168, beretH: 128,
+    glassTop: 100, glassLeft: 112, glassW: 176, glassH: 84,
+    broochTop: 234, broochLeft: 168, broochW: 58, broochH: 58,
+  },
+  dog: {
+    beretTop: 4,  beretLeft: 124, beretW: 152, beretH: 120,
+    glassTop: 104, glassLeft: 120, glassW: 160, glassH: 80,
+    broochTop: 234, broochLeft: 172, broochW: 54, broochH: 54,
+  },
+  otter: {
+    beretTop: 6,  beretLeft: 128, beretW: 144, beretH: 118,
+    glassTop: 104, glassLeft: 124, glassW: 152, glassH: 80,
+    broochTop: 238, broochLeft: 174, broochW: 52, broochH: 52,
+  },
+};
+
+const DEFAULT_OFFSETS = SPECIES_OFFSETS.rabbit;
+
 export const RealArtPetRenderer: React.FC<RealArtPetRendererProps> = ({
   species = 'rabbit',
   appearance,
@@ -29,9 +103,11 @@ export const RealArtPetRenderer: React.FC<RealArtPetRendererProps> = ({
   breathAnimY,
   breathAnimX,
 }) => {
-  const charArt = getCharacterArt(species || appearance?.characterId);
+  const resolvedSpecies = (species || appearance?.characterId || 'rabbit') as CharacterSpeciesId;
+  const charArt = getCharacterArt(resolvedSpecies);
   const hatType = appearance?.hat || 'none';
   const accessoryType = appearance?.accessory || 'clover';
+  const offsets = SPECIES_OFFSETS[resolvedSpecies] || DEFAULT_OFFSETS;
 
   const hatSource =
     hatType === 'beret'
@@ -103,16 +179,16 @@ export const RealArtPetRenderer: React.FC<RealArtPetRendererProps> = ({
           resizeMode="contain"
         />
 
-        {/* ACCESSORY LAYER: Hat (Beret / Glasses) */}
+        {/* ACCESSORY LAYER: Hat (Beret) — species-calibrated position */}
         {hatType === 'beret' && hatSource && (
           <View
             style={[
               styles.accessoryBox,
               {
-                top: 4 * scale,
-                left: 126 * scale,
-                width: 148 * scale,
-                height: 120 * scale,
+                top: offsets.beretTop * scale,
+                left: offsets.beretLeft * scale,
+                width: offsets.beretW * scale,
+                height: offsets.beretH * scale,
               },
             ]}
             pointerEvents="none"
@@ -121,15 +197,16 @@ export const RealArtPetRenderer: React.FC<RealArtPetRendererProps> = ({
           </View>
         )}
 
+        {/* ACCESSORY LAYER: Glasses — species-calibrated position */}
         {hatType === 'glasses' && hatSource && (
           <View
             style={[
               styles.accessoryBox,
               {
-                top: 104 * scale,
-                left: 124 * scale,
-                width: 152 * scale,
-                height: 80 * scale,
+                top: offsets.glassTop * scale,
+                left: offsets.glassLeft * scale,
+                width: offsets.glassW * scale,
+                height: offsets.glassH * scale,
               },
             ]}
             pointerEvents="none"
@@ -138,16 +215,16 @@ export const RealArtPetRenderer: React.FC<RealArtPetRendererProps> = ({
           </View>
         )}
 
-        {/* ACCESSORY LAYER: Chest Brooch (Clover / Star / Brush) */}
+        {/* ACCESSORY LAYER: Chest Brooch — species-calibrated position */}
         {broochSource && (
           <View
             style={[
               styles.accessoryBox,
               {
-                top: 236 * scale,
-                left: 174 * scale,
-                width: 52 * scale,
-                height: 52 * scale,
+                top: offsets.broochTop * scale,
+                left: offsets.broochLeft * scale,
+                width: offsets.broochW * scale,
+                height: offsets.broochH * scale,
               },
             ]}
             pointerEvents="none"

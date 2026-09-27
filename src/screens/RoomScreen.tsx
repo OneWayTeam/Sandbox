@@ -29,7 +29,6 @@ interface RoomScreenProps {
   appearance?: PetAppearance;
   playerName?: string;
   stageTitle?: string;
-  avatarSource?: any;
   onCollectReward: () => void;
   onOpenShop: () => void;
   onOpenScratch: () => void;
@@ -50,7 +49,6 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
   appearance,
   playerName = 'Зайка',
   stageTitle = 'Художник',
-  avatarSource,
   onCollectReward,
   onOpenShop,
   onOpenScratch,
@@ -76,7 +74,6 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
         period={period}
         playerName={playerName}
         stageTitle={stageTitle}
-        avatarSource={avatarSource}
         appearance={appearance}
         onPressProfile={onOpenProfile}
         onPressSettings={onOpenParentZone}

@@ -36,6 +36,7 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
   const currentStage: PetStage = stage || ((storeState as any).petDevelopmentStage as PetStage) || storeState.profile?.stage || 1;
   const currentMoodState: PetMoodState = moodState || storeState.petState?.moodState || 'calm';
   const animationsEnabled = (storeState as any).settings?.animationsEnabled ?? true;
+  const petName = storeState.profile?.petName || 'Питомец';
 
   const [activeAnim, setActiveAnim] = useState<PetAnimationType>(currentAnimation);
   const [activeReaction, setActiveReaction] = useState<PetReactionEvent | null>(null);
@@ -158,7 +159,7 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
     if (!animationsEnabled) {
       setActiveReaction({
         type: 'tap',
-        message: 'Привет! Финни рад тебе!',
+        message: `Привет! ${petName} рад тебе!`,
         timestamp: Date.now(),
       });
       return;
@@ -167,7 +168,7 @@ export const FinnyCharacter: React.FC<FinnyCharacterProps> = memo(({
     // Trigger reaction bubble with smooth fade & float
     setActiveReaction({
       type: 'tap',
-      message: 'Привет!',
+      message: `Привет! Идём к цели!`,
       timestamp: Date.now(),
     });
     reactionAnim.setValue(0);

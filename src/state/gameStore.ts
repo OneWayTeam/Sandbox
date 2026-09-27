@@ -232,24 +232,25 @@ class GameStore {
   }
 
   public equipItem(itemId: string): { success: boolean; message: string } {
+    const petName = this.engine.getState().playerProfile.petName || 'Питомец';
     if (itemId === 'clothes_beret') {
       this.engine.updatePet({ hat: 'beret' });
-      this.engine.updatePetState({ statusText: 'Финни примерил берет мастера!' });
+      this.engine.updatePetState({ statusText: `${petName} примерил(а) берет мастера!` });
       this.notify();
-      return { success: true, message: 'Берет мастера надет на Финни!' };
+      return { success: true, message: `Берет мастера надет на ${petName}!` };
     }
     if (itemId === 'clothes_scarf') {
       this.engine.updatePetState({
         mood: Math.min(100, this.engine.getState().petState.mood + 10),
-        statusText: 'Финни надел тёплый вязаный шарф!',
+        statusText: `${petName} надел(а) тёплый вязаный шарф!`,
       });
       this.notify();
-      return { success: true, message: 'Тёплый шарф согревает Финни!' };
+      return { success: true, message: `Тёплый шарф согревает ${petName}!` };
     }
     if (itemId.startsWith('food_')) {
       this.engine.updatePetState({
         satiety: Math.min(100, this.engine.getState().petState.satiety + 20),
-        statusText: 'Финни с удовольствием подкрепился!',
+        statusText: `${petName} с удовольствием подкрепился(лась)!`,
       });
       this.notify();
       return { success: true, message: 'Питомец покормлен!' };

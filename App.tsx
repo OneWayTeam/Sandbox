@@ -25,7 +25,6 @@ import { PeriodSummaryModal } from './src/components/PeriodSummaryModal';
 import { TaskModal } from './src/components/TaskModal';
 import { gameStore, GameState } from './src/state/gameStore';
 import { FinancialTask, PeriodSummary } from './src/types/gameTypes';
-import { PET_CUSTOM_ASSETS } from './src/pet/petFrames';
 import { PET_STAGES } from './src/state/gameData';
 
 export default function App() {
@@ -148,17 +147,8 @@ export default function App() {
     gameState.goals.find((g) => g.id === gameState.activeGoalId) || gameState.goals[0];
   const pendingTask = gameState.tasks.find((t) => !t.completed) || gameState.tasks[0];
 
-  const currentAppearance = gameState.profile.appearance;
   const currentStage =
     PET_STAGES.find((s) => s.stage === gameState.profile.stage) || PET_STAGES[0];
-  const avatarKey =
-    currentAppearance.hat === 'beret'
-      ? 'beret'
-      : currentAppearance.hat === 'glasses'
-      ? 'glasses'
-      : currentAppearance.sweaterColor || 'green';
-  const currentAvatarSource =
-    (PET_CUSTOM_ASSETS.thumbs as any)[avatarKey] || PET_CUSTOM_ASSETS.thumbs.green;
 
   const isWeb = Platform.OS === 'web';
   const isWideScreen = isWeb && windowWidth > 540;
@@ -197,7 +187,6 @@ export default function App() {
                 appearance={gameState.profile.appearance}
                 playerName={gameState.profile.playerName || 'Зайка'}
                 stageTitle={currentStage.title}
-                avatarSource={currentAvatarSource}
                 onCollectReward={() => setCollectModalVisible(true)}
                 onOpenShop={() => navigateTo('shop')}
                 onOpenScratch={() => setScratchModalVisible(true)}
