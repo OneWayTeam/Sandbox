@@ -8,7 +8,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { FinnyCharacter } from '../components/FinnyCharacter';
+import { FinnyCharacter3D } from '../components/FinnyCharacter3D';
 import { COLORS } from '../theme/colors';
 import {
   IconArrowBack,
@@ -156,7 +156,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
 
       {/* Finny in the Park */}
       <View style={styles.characterLayer} pointerEvents="box-none">
-        <FinnyCharacter />
+        <FinnyCharacter3D />
       </View>
 
       {/* Bottom Quest Drawer */}

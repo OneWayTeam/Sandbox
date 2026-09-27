@@ -8,7 +8,7 @@ import {
   Dimensions,
   ScrollView,
 } from 'react-native';
-import { FinnyCharacter } from '../components/FinnyCharacter';
+import { FinnyCharacter3D } from '../components/FinnyCharacter3D';
 import { COLORS } from '../theme/colors';
 import {
   IconArrowBack,
@@ -143,7 +143,7 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
 
       {/* Finny in front of the Vault Safe */}
       <View style={styles.characterLayer} pointerEvents="box-none">
-        <FinnyCharacter />
+        <FinnyCharacter3D />
       </View>
 
       {/* Bottom Vault & History Control Drawer */}

@@ -15,8 +15,12 @@
         "backgroundColor": "#FAF5EE"
       }
     },
+    "assets": ["./assets/raccoon.glb"],
     "web": {
       "favicon": "./assets/coin.png"
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }

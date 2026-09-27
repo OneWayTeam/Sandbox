@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { TopHeader } from '../components/TopHeader';
 import { FloatingActions } from '../components/FloatingActions';
-import { FinnyCharacter } from '../components/FinnyCharacter';
+import { FinnyCharacter3D } from '../components/FinnyCharacter3D';
 import { GoalCard } from '../components/GoalCard';
 import {
   IconApple,
@@ -156,9 +156,9 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
         onScratchPress={onOpenScratch}
       />
 
-      {/* 7. MAIN 3D CHARACTER WITH CUSTOMIZATION */}
+      {/* 7. MAIN 3D CHARACTER — Real rigged raccoon (Meshy GLB + expo-gl + three.js) */}
       <View style={styles.characterContainer} pointerEvents="box-none">
-        <FinnyCharacter appearance={appearance} />
+        <FinnyCharacter3D appearance={appearance} />
       </View>
 
       {/* 8. BOTTOM SECTION: Goal Card */}
