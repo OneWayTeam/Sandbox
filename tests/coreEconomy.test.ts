@@ -212,6 +212,29 @@ console.log('--- STARTING CORE GAME ENGINE ECONOMY UNIT TESTS ---');
   console.log('✓ Test 10 passed: State persists and restores completely without data loss');
 }
 
+// TEST 11: Произвольное распределение бюджета (не кратное 5, например 52 монеты)
+{
+  console.log('Test 11: Arbitrary budget allocation (e.g. 52 coins, not divisible by 5)');
+  const engine = new GameEngine();
+  // Credit balance to 52 coins
+  const currentBal = engine.getState().balance;
+  engine.receiveIncome(52 - currentBal, 'test_income', 'Set balance to 52');
+  assert.strictEqual(engine.getState().balance, 52);
+
+  // Allocate non-divisible by 5 numbers: 21 mandatory, 13 discretionary, 18 savings (sum = 52)
+  const confirmRes = engine.confirmBudget(21, 13, 18);
+  assert.strictEqual(confirmRes.success, true, 'Confirming budget of 21 + 13 + 18 = 52 must succeed');
+  assert.strictEqual(engine.getState().plannedMandatory, 21);
+  assert.strictEqual(engine.getState().plannedOptional, 13);
+  assert.strictEqual(engine.getState().plannedSavings, 18);
+  assert.strictEqual(engine.getState().isBudgetApproved, true);
+
+  // Excessive allocation must fail (sum = 53 > 52)
+  const excessiveRes = engine.confirmBudget(22, 13, 18);
+  assert.strictEqual(excessiveRes.success, false, 'Confirming budget exceeding available balance must fail');
+  console.log('✓ Test 11 passed: Arbitrary amounts not divisible by 5 can be planned without issue');
+}
+
 console.log('\n========================================');
-console.log('ALL 10 CORE GAME ENGINE UNIT TESTS PASSED!');
+console.log('ALL 11 CORE GAME ENGINE UNIT TESTS PASSED!');
 console.log('========================================\n');

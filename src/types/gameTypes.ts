@@ -27,6 +27,8 @@ export type PetReactionType =
   | 'task_completed'
   | 'period_finish'
   | 'stage_evolution'
+  | 'goal_reached'
+  | 'reward'
   | 'tap';
 
 export interface PetReactionEvent {
@@ -79,6 +81,7 @@ export interface FinancialGoal {
   savedAmount: number;
   description: string;
   iconName: string;
+  completed?: boolean;
 }
 
 export type TaskTheme = 'budget' | 'savings' | 'payments';

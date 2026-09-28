@@ -30,12 +30,14 @@ interface OnboardingModalProps {
   visible: boolean;
   onClose: () => void;
   onComplete?: () => void;
+  isStandalone?: boolean;
 }
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   visible,
   onClose,
   onComplete,
+  isStandalone = false,
 }) => {
   const storeState = gameStore.getState();
   const currentProfile = storeState.profile;
@@ -118,30 +120,30 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     hat,
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerTitleCol}>
-              <Text style={styles.stepBadge}>
-                {step === 1 ? 'Шаг 1 из 3' : step === 2 ? 'Шаг 2 из 3' : 'Шаг 3 из 3'}
-              </Text>
-              <Text style={styles.headerTitle}>
-                {step === 1
-                  ? 'Правила игры'
-                  : step === 2
-                  ? 'Выбор питомца и стиль'
-                  : 'Твоя финансовая цель'}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
-            </TouchableOpacity>
-          </View>
+  const content = (
+    <View style={isStandalone ? styles.standaloneCard : styles.card}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTitleCol}>
+          <Text style={styles.stepBadge}>
+            {step === 1 ? 'Шаг 1 из 3' : step === 2 ? 'Шаг 2 из 3' : 'Шаг 3 из 3'}
+          </Text>
+          <Text style={styles.headerTitle}>
+            {step === 1
+              ? 'Правила игры'
+              : step === 2
+              ? 'Выбор питомца и стиль'
+              : 'Твоя финансовая цель'}
+          </Text>
+        </View>
+        {!isStandalone && currentProfile.onboardingCompleted && (
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
-          <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
             {/* ================= STEP 1: RULES ================= */}
             {step === 1 && (
               <View style={styles.stepOneContent}>
@@ -278,41 +280,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   maxLength={18}
                 />
 
-                {/* 1. Sweater Color */}
-                <Text style={styles.sectionSubtitle}>Цвет свитера:</Text>
-                <View style={styles.photoChipsRow}>
-                  <TouchableOpacity
-                    style={[styles.photoChip, sweaterColor === 'green' && styles.photoChipActive]}
-                    onPress={() => setSweaterColor('green')}
-                  >
-                    <View style={[styles.colorDot, { backgroundColor: '#10B981' }]} />
-                    <Text style={[styles.photoChipText, sweaterColor === 'green' && styles.photoChipTextActive]}>
-                      Изумрудный
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.photoChip, sweaterColor === 'blue' && styles.photoChipActive]}
-                    onPress={() => setSweaterColor('blue')}
-                  >
-                    <View style={[styles.colorDot, { backgroundColor: '#3B82F6' }]} />
-                    <Text style={[styles.photoChipText, sweaterColor === 'blue' && styles.photoChipTextActive]}>
-                      Лазурный
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.photoChip, sweaterColor === 'red' && styles.photoChipActive]}
-                    onPress={() => setSweaterColor('red')}
-                  >
-                    <View style={[styles.colorDot, { backgroundColor: '#EF4444' }]} />
-                    <Text style={[styles.photoChipText, sweaterColor === 'red' && styles.photoChipTextActive]}>
-                      Бордовый
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* 2. Hat / Style */}
+                {/* Hat / Style */}
                 <Text style={styles.sectionSubtitle}>Головной убор:</Text>
                 <View style={styles.photoChipsRow}>
                   <TouchableOpacity
@@ -481,13 +449,33 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </View>
             )}
           </ScrollView>
-        </View>
-      </View>
+    </View>
+  );
+
+  if (isStandalone) {
+    return <View style={styles.standaloneRoot}>{content}</View>;
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.overlay}>{content}</View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  standaloneRoot: {
+    flex: 1,
+    backgroundColor: '#FAF5EE',
+    width: '100%',
+    height: '100%',
+  },
+  standaloneCard: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#FAF5EE',
+    paddingTop: 8,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',

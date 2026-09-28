@@ -31,6 +31,7 @@ import { gameStore } from '../state/gameStore';
 interface ShopScreenProps {
   coins: number;
   subCategory?: string;
+  petName?: string;
   onBackToRoom: () => void;
   onNavigateToTasks?: () => void;
 }
@@ -40,6 +41,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const ShopScreen: React.FC<ShopScreenProps> = ({
   coins,
   subCategory = 'all',
+  petName = 'Финни',
   onBackToRoom,
   onNavigateToTasks,
 }) => {
@@ -119,7 +121,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({
         </TouchableOpacity>
 
         <View style={styles.titlePill}>
-          <Text style={styles.sceneTitle}>Лавка Финни</Text>
+          <Text style={styles.sceneTitle}>Лавка {petName}</Text>
         </View>
 
         <View style={styles.coinPill}>

@@ -16,6 +16,7 @@ interface PeriodSummaryModalProps {
   visible: boolean;
   summary: PeriodSummary | null;
   stage: PetStage;
+  petName?: string;
   onClose: () => void;
 }
 
@@ -23,6 +24,7 @@ export const PeriodSummaryModal: React.FC<PeriodSummaryModalProps> = ({
   visible,
   summary,
   stage,
+  petName = 'Финни',
   onClose,
 }) => {
   if (!summary) return null;
@@ -140,7 +142,7 @@ export const PeriodSummaryModal: React.FC<PeriodSummaryModalProps> = ({
                 <IconTrophy size={28} color="#D97706" />
               </View>
               <View style={styles.stageTextCol}>
-                <Text style={styles.stageLabel}>Стадия развития Финни:</Text>
+                <Text style={styles.stageLabel}>Стадия развития {petName}:</Text>
                 <Text style={styles.stageName}>{currentStageInfo.title}</Text>
                 <Text style={styles.stageSub}>{currentStageInfo.subtitle}</Text>
               </View>

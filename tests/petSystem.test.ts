@@ -8,7 +8,13 @@ import { PetMoodState, CharacterSpeciesId } from '../src/types/gameTypes';
 import { INITIAL_SHOP_ITEMS } from '../src/state/gameData';
 import { PET_CHARACTERS, getCharacterDefinition } from '../src/pet/petCharacters';
 import { EDUCATIONAL_GOALS } from '../src/content/goalsContent';
-import { PET_ART_CHARACTERS, getCharacterArt, PET_ACCESSORY_ASSETS } from '../src/pet/petArtAssets';
+import {
+  PET_ART_CHARACTERS,
+  getCharacterArt,
+  PET_ACCESSORY_ASSETS,
+  PET_COSMETIC_OFFSETS,
+  getCosmeticOffsets,
+} from '../src/pet/petArtAssets';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -315,6 +321,73 @@ expectedSpecies.forEach((speciesId, idx) => {
     `Accessories are strictly preserved on appearance for ${speciesId}`
   );
 });
+
+// 5. ANATOMICALLY ACCURATE COSMETICS CALIBRATION FOR ALL 9 SPECIES
+console.log('\n--- 5. ANATOMICALLY ACCURATE COSMETICS CALIBRATION ---');
+const allSpeciesList: CharacterSpeciesId[] = [
+  'raccoon', 'fox', 'cat', 'panda', 'capybara', 'rabbit', 'bear', 'dog', 'otter'
+];
+
+allSpeciesList.forEach((sp) => {
+  const offsets = getCosmeticOffsets(sp);
+  assert(offsets !== undefined, `Calibrated cosmetic offsets exist for ${sp}`);
+
+  // Glasses geometry checks: width, height, and eye-level positioning
+  assert(offsets.glassW >= 150 && offsets.glassW <= 250, `${sp} glasses width is proportional (${offsets.glassW})`);
+  assert(offsets.glassH >= 60 && offsets.glassH <= 110, `${sp} glasses height is proportional (${offsets.glassH})`);
+  assert(offsets.glassTop >= 65 && offsets.glassTop <= 140, `${sp} glasses sit in realistic eye zone (top=${offsets.glassTop})`);
+  assert(offsets.glassLeft >= 50 && offsets.glassLeft <= 140, `${sp} glasses horizontally align with face (left=${offsets.glassLeft})`);
+
+  // Beret geometry checks: wide natural width, low profile height, crown level, and horizontal angle
+  assert(offsets.beretW >= 130 && offsets.beretW <= 150, `${sp} beret width fits skull naturally (${offsets.beretW})`);
+  assert(offsets.beretH >= 65 && offsets.beretH <= 80, `${sp} beret height matches new 2:1 aspect ratio (${offsets.beretH})`);
+  assert(offsets.beretTop >= 0 && offsets.beretTop <= 75, `${sp} beret sits on head crown without negative bounds (top=${offsets.beretTop})`);
+  assert(offsets.beretRotate === 0, `${sp} beret is worn strictly horizontally (rotate=0)`);
+  assert(
+    offsets.beretTop + offsets.beretH <= offsets.glassTop + 10,
+    `${sp} beret does not cover the face or eyes (bottom=${offsets.beretTop + offsets.beretH}, glassTop=${offsets.glassTop})`
+  );
+
+  // Brooch geometry checks: chest placement
+  assert(offsets.broochTop >= 190 && offsets.broochTop <= 310, `${sp} brooch sits strictly on chest (${offsets.broochTop})`);
+  assert(offsets.broochLeft >= 130 && offsets.broochLeft <= 180, `${sp} brooch centered horizontally on chest (${offsets.broochLeft})`);
+  assert(offsets.broochW >= 50 && offsets.broochW <= 65, `${sp} brooch has proper base scale (${offsets.broochW})`);
+});
+
+// Distinct anatomical differentiation checks
+const rabbitOffsets = getCosmeticOffsets('rabbit');
+const capybaraOffsets = getCosmeticOffsets('capybara');
+const otterOffsets = getCosmeticOffsets('otter');
+
+assert(
+  rabbitOffsets.glassTop - capybaraOffsets.glassTop >= 40,
+  `Rabbit eyes sit at lower canvas level than Capybara (Rabbit glassTop=${rabbitOffsets.glassTop}, Capybara=${capybaraOffsets.glassTop})`
+);
+assert(
+  rabbitOffsets.beretTop - capybaraOffsets.beretTop >= 40,
+  `Rabbit long ears require beret at head base, while flat-head Capybara requires beret at skull top (Rabbit beretTop=${rabbitOffsets.beretTop}, Capybara=${capybaraOffsets.beretTop})`
+);
+assert(
+  rabbitOffsets.broochTop - otterOffsets.broochTop >= 80,
+  `Rabbit lower torso vs Otter high chest reflected in brooch coordinates (Rabbit=${rabbitOffsets.broochTop}, Otter=${otterOffsets.broochTop})`
+);
+
+// Fallback safety check
+const fallbackOffsets = getCosmeticOffsets('unknown_creature' as any);
+assert(fallbackOffsets.glassTop === rabbitOffsets.glassTop, 'Fallback offsets safely resolve to rabbit defaults');
+
+// Sweaters verification
+console.log('\n--- 4. SWEATER ASSETS & GEOMETRY ---');
+assert(Boolean(PET_ACCESSORY_ASSETS.sweaters?.green), 'Green sweater asset is registered');
+assert(Boolean(PET_ACCESSORY_ASSETS.sweaters?.blue), 'Blue sweater asset is registered');
+assert(Boolean(PET_ACCESSORY_ASSETS.sweaters?.red), 'Red sweater asset is registered');
+
+allSpeciesList.forEach((sp: CharacterSpeciesId) => {
+  const offsets = getCosmeticOffsets(sp);
+  assert(typeof offsets.sweaterTop === 'number' && offsets.sweaterTop >= 150 && offsets.sweaterTop <= 270, `${sp} sweaterTop is properly positioned (${offsets.sweaterTop})`);
+  assert(typeof offsets.sweaterW === 'number' && offsets.sweaterW >= 190 && offsets.sweaterW <= 230, `${sp} sweater width fits torso (${offsets.sweaterW})`);
+});
+
 
 // Summary
 console.log('\n========================================');

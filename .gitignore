@@ -12,3 +12,4 @@ assets/pet_custom/test_*.png
 test_alpha.py
 .DS_Store
 Thumbs.db
+scratch/

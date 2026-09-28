@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  TextInput,
   Image,
   Dimensions,
   ScrollView,
@@ -31,6 +32,7 @@ interface SavingsScreenProps {
   goals: FinancialGoal[];
   activeGoalId: string;
   subCategory?: string;
+  petName?: string;
   onDeposit: (amount: number) => void;
   onBackToRoom: () => void;
 }
@@ -42,6 +44,7 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
   goals,
   activeGoalId,
   subCategory = 'all',
+  petName = 'Финни',
   onDeposit,
   onBackToRoom,
 }) => {
@@ -52,6 +55,7 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
   );
   const [historyFilter, setHistoryFilter] = useState<'all' | 'income' | 'expense' | 'periods'>('all');
   const [isDepositing, setIsDepositing] = useState(false);
+  const [depositInput, setDepositInput] = useState<string>('5');
 
   const handleDeposit = (amount: number) => {
     if (isDepositing) return;
@@ -85,6 +89,40 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
     currentGoal,
     savingsHistory,
     state.budgetPlan.isApproved ? state.budgetPlan.savings : undefined
+  );
+
+  const isGoalCompleted = currentGoal
+    ? currentGoal.savedAmount >= currentGoal.totalCost || Boolean(currentGoal.completed)
+    : false;
+
+  const maxDeposit = Math.max(0, Math.min(coins, remaining));
+  const parsedDep = parseInt(depositInput, 10);
+  const effectiveDeposit = isNaN(parsedDep)
+    ? 1
+    : Math.min(maxDeposit, Math.max(1, parsedDep));
+
+  const handleStepDeposit = (delta: number) => {
+    if (maxDeposit <= 0) return;
+    const next = Math.min(maxDeposit, Math.max(1, effectiveDeposit + delta));
+    setDepositInput(String(next));
+  };
+
+  const handlePickNextGoal = () => {
+    const nextIncomplete = goals.find(
+      (g) => g.id !== currentGoal.id && g.savedAmount < g.totalCost && !g.completed
+    );
+    if (nextIncomplete) {
+      handleSelectGoal(nextIncomplete.id);
+    } else {
+      const anyOther = goals.find((g) => g.id !== currentGoal.id);
+      if (anyOther) {
+        handleSelectGoal(anyOther.id);
+      }
+    }
+  };
+
+  const depositChips = Array.from(new Set([1, 5, 10, maxDeposit])).filter(
+    (n) => n > 0 && n <= maxDeposit
   );
 
   const handleSelectGoal = (id: string) => {
@@ -136,7 +174,7 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
         </TouchableOpacity>
 
         <View style={styles.titlePill}>
-          <Text style={styles.sceneTitle}>Золотой Сейф Финни</Text>
+          <Text style={styles.sceneTitle}>Золотой Сейф {petName}</Text>
         </View>
 
         <View style={styles.coinPill}>
@@ -185,35 +223,50 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.goalChipsRow}
             >
-              {goals.map((g) => (
-                <TouchableOpacity
-                  key={g.id}
-                  style={[
-                    styles.goalChip,
-                    g.id === selectedGoalId && styles.goalChipActive,
-                  ]}
-                  onPress={() => handleSelectGoal(g.id)}
-                >
-                  {getGoalIcon(g.iconName)}
-                  <Text
+              {goals.map((g) => {
+                const isItemDone = g.savedAmount >= g.totalCost || Boolean(g.completed);
+                return (
+                  <TouchableOpacity
+                    key={g.id}
                     style={[
-                      styles.goalChipText,
-                      g.id === selectedGoalId && styles.goalChipTextActive,
+                      styles.goalChip,
+                      g.id === selectedGoalId && styles.goalChipActive,
+                      isItemDone && styles.goalChipDone,
                     ]}
+                    onPress={() => handleSelectGoal(g.id)}
                   >
-                    {g.title}
-                  </Text>
-                  {g.id === activeGoalId && (
-                    <View style={styles.activeDot} />
-                  )}
-                </TouchableOpacity>
-              ))}
+                    {getGoalIcon(g.iconName)}
+                    <Text
+                      style={[
+                        styles.goalChipText,
+                        g.id === selectedGoalId && styles.goalChipTextActive,
+                      ]}
+                    >
+                      {g.title}
+                    </Text>
+                    {isItemDone ? (
+                      <View style={styles.goalChipCheckBadge}>
+                        <Text style={styles.goalChipCheckText}>✓</Text>
+                      </View>
+                    ) : g.id === activeGoalId ? (
+                      <View style={styles.activeDot} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
 
             {/* Selected Goal Details */}
             <View style={styles.vaultHeaderRow}>
               <View style={styles.vaultTextCol}>
-                <Text style={styles.vaultGoalTitle}>{currentGoal.title}</Text>
+                <View style={styles.goalTitleRow}>
+                  <Text style={styles.vaultGoalTitle}>{currentGoal.title}</Text>
+                  {isGoalCompleted && (
+                    <View style={styles.doneInlinePill}>
+                      <Text style={styles.doneInlineText}>✓ ВЫПОЛНЕНА</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.vaultGoalDesc}>{currentGoal.description}</Text>
               </View>
             </View>
@@ -224,56 +277,151 @@ export const SavingsScreen: React.FC<SavingsScreenProps> = ({
                 <Text style={styles.progressLabelLeft}>
                   Накоплено: {currentGoal.savedAmount} из {currentGoal.totalCost} монет
                 </Text>
-                <Text style={styles.progressLabelRight}>{percent}%</Text>
+                <Text style={[styles.progressLabelRight, isGoalCompleted && { color: '#059669' }]}>
+                  {percent}%
+                </Text>
               </View>
 
               <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${percent}%` }]} />
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${percent}%` },
+                    isGoalCompleted && { backgroundColor: '#10B981' },
+                  ]}
+                />
               </View>
 
-              {/* Time Horizon (без ложной точности) */}
+              {/* Time Horizon or Completion State */}
               <Text style={styles.timeHorizonText}>
-                {remaining === 0
-                  ? 'Цель достигнута! Питомец гордится твоими сбережениями!'
+                {isGoalCompleted
+                  ? '🎉 Мечта исполнена! Питомец гордится твоими сбережениями!'
                   : `Осталось накопить: ${remaining} монет • ${estimate.displayText}`}
               </Text>
             </View>
 
-            {/* Action Buttons: Deposit vs Withdraw */}
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={[styles.depositBtn, (coins < 5 || isDepositing) && styles.btnDisabled]}
-                activeOpacity={0.85}
-                onPress={() => handleDeposit(5)}
-                disabled={coins < 5 || isDepositing}
-              >
-                <Image source={require('../../assets/coin.png')} style={styles.depositCoin} />
-                <Text style={styles.depositBtnText}>{isDepositing ? '...' : 'Отложить +5'}</Text>
-              </TouchableOpacity>
+            {/* If goal is completed: celebrate, lock operations, offer picking next goal */}
+            {isGoalCompleted ? (
+              <View style={styles.completedCard}>
+                <View style={styles.completedNoticeRow}>
+                  <Text style={styles.completedIcon}>🏆</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.completedNoticeTitle}>Цель полностью достигнута!</Text>
+                    <Text style={styles.completedNoticeDesc}>
+                      Все {currentGoal.totalCost} монет собраны. Накопления зафиксированы для покупки мечты. Вкладывать и забирать монеты из завершённой цели нельзя.
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.chooseNextGoalBtn}
+                  onPress={handlePickNextGoal}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.chooseNextGoalBtnText}>🎯 Выбрать новую цель</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                {/* Arbitrary Deposit Amount Selector */}
+                <View style={styles.amountSelectorBox}>
+                  <View style={styles.selectorHeaderRow}>
+                    <Text style={styles.amountSelectorTitle}>
+                      Сколько отложить (свободно {coins} 🪙, осталось {remaining}):
+                    </Text>
+                  </View>
 
-              <TouchableOpacity
-                style={[styles.depositBtn, (coins < 10 || isDepositing) && styles.btnDisabled]}
-                activeOpacity={0.85}
-                onPress={() => handleDeposit(10)}
-                disabled={coins < 10 || isDepositing}
-              >
-                <Image source={require('../../assets/coin.png')} style={styles.depositCoin} />
-                <Text style={styles.depositBtnText}>{isDepositing ? '...' : 'Отложить +10'}</Text>
-              </TouchableOpacity>
+                  <View style={styles.stepperRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.stepBtn,
+                        (effectiveDeposit <= 1 || maxDeposit <= 0) && styles.stepBtnDisabled,
+                      ]}
+                      onPress={() => handleStepDeposit(-1)}
+                      disabled={effectiveDeposit <= 1 || maxDeposit <= 0}
+                    >
+                      <Text style={styles.stepBtnText}>−</Text>
+                    </TouchableOpacity>
 
-              {/* Withdraw button (ТЗ 2.5.7: только с отдельным подтверждением) */}
-              <TouchableOpacity
-                style={[
-                  styles.withdrawBtn,
-                  currentGoal.savedAmount < 10 && styles.btnDisabled,
-                ]}
-                activeOpacity={0.85}
-                onPress={() => setWithdrawModalVisible(true)}
-                disabled={currentGoal.savedAmount < 10}
-              >
-                <Text style={styles.withdrawBtnText}>Снять 10</Text>
-              </TouchableOpacity>
-            </View>
+                    <View style={styles.inputWrapper}>
+                      <TextInput
+                        style={styles.numberInput}
+                        keyboardType="number-pad"
+                        value={depositInput}
+                        onChangeText={(t) => setDepositInput(t.replace(/[^0-9]/g, ''))}
+                        maxLength={5}
+                      />
+                      <Image source={require('../../assets/coin.png')} style={styles.coinIconInput} />
+                    </View>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.stepBtn,
+                        (effectiveDeposit >= maxDeposit || maxDeposit <= 0) && styles.stepBtnDisabled,
+                      ]}
+                      onPress={() => handleStepDeposit(1)}
+                      disabled={effectiveDeposit >= maxDeposit || maxDeposit <= 0}
+                    >
+                      <Text style={styles.stepBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Preset quick chips */}
+                  {depositChips.length > 0 && (
+                    <View style={styles.depositChipsRow}>
+                      {depositChips.map((chipAmt) => (
+                        <TouchableOpacity
+                          key={`dep_chip_${chipAmt}`}
+                          style={[
+                            styles.depositChip,
+                            effectiveDeposit === chipAmt && styles.depositChipActive,
+                          ]}
+                          onPress={() => setDepositInput(String(chipAmt))}
+                        >
+                          <Text
+                            style={[
+                              styles.depositChipText,
+                              effectiveDeposit === chipAmt && styles.depositChipTextActive,
+                            ]}
+                          >
+                            {chipAmt === maxDeposit ? `Всё (${chipAmt})` : `+${chipAmt}`}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Action Buttons: Deposit vs Withdraw */}
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.depositBtn,
+                      (coins <= 0 || maxDeposit <= 0 || isDepositing) && styles.btnDisabled,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => handleDeposit(effectiveDeposit)}
+                    disabled={coins <= 0 || maxDeposit <= 0 || isDepositing}
+                  >
+                    <Image source={require('../../assets/coin.png')} style={styles.depositCoin} />
+                    <Text style={styles.depositBtnText}>
+                      {isDepositing ? 'Откладываем...' : `Отложить ${effectiveDeposit} 🪙`}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.withdrawBtn,
+                      currentGoal.savedAmount <= 0 && styles.btnDisabled,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => setWithdrawModalVisible(true)}
+                    disabled={currentGoal.savedAmount <= 0}
+                  >
+                    <Text style={styles.withdrawBtnText}>Снять монеты...</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         ) : (
           // HISTORY OF TRANSACTIONS & PERIOD SUMMARIES (ТЗ: иметь историю)
@@ -633,6 +781,185 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.45,
+  },
+  goalChipDone: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  goalChipCheckBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalChipCheckText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  goalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  doneInlinePill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  doneInlineText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  completedCard: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    padding: 14,
+    marginBottom: 4,
+  },
+  completedNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  completedIcon: {
+    fontSize: 32,
+  },
+  completedNoticeTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#166534',
+    marginBottom: 4,
+  },
+  completedNoticeDesc: {
+    fontSize: 12,
+    color: '#15803D',
+    lineHeight: 16,
+  },
+  chooseNextGoalBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  chooseNextGoalBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  amountSelectorBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  selectorHeaderRow: {
+    marginBottom: 8,
+  },
+  amountSelectorTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    textAlign: 'center',
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  stepBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  stepBtnDisabled: {
+    opacity: 0.35,
+  },
+  stepBtnText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+    lineHeight: 22,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 12,
+    minWidth: 100,
+    height: 38,
+    justifyContent: 'center',
+  },
+  numberInput: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'center',
+    padding: 0,
+    minWidth: 36,
+  },
+  coinIconInput: {
+    width: 18,
+    height: 18,
+    marginLeft: 4,
+  },
+  depositChipsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  depositChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  depositChipActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+  },
+  depositChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  depositChipTextActive: {
+    color: '#15803D',
   },
   modeTabsRow: {
     flexDirection: 'row',

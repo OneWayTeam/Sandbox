@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Image,
 } from 'react-native';
 import { COLORS } from '../theme/colors';
@@ -21,12 +22,22 @@ import {
 import { BudgetPlan, BudgetFact, FinancialGoal } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
 
+const getCoinWord = (n: number) => {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return 'монет';
+  if (last > 1 && last < 5) return 'монеты';
+  if (last === 1) return 'монета';
+  return 'монет';
+};
+
 interface PlanScreenProps {
   period: number;
   coins: number;
   budgetPlan: BudgetPlan;
   budgetFact: BudgetFact;
   activeGoal: FinancialGoal;
+  petName?: string;
   onBackToRoom?: () => void;
   onPeriodAdvanced?: () => void;
 }
@@ -37,41 +48,84 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
   budgetPlan,
   budgetFact,
   activeGoal,
+  petName = 'Финни',
   onBackToRoom,
   onPeriodAdvanced,
 }) => {
   // Available budget to plan for this period
-  const totalAvailable = Math.max(coins, budgetPlan.isApproved ? (budgetPlan.mandatory + budgetPlan.discretionary + budgetPlan.savings) : 25);
+  const totalAvailable = Math.max(
+    coins,
+    budgetPlan.isApproved ? (budgetPlan.mandatory + budgetPlan.discretionary + budgetPlan.savings) : 25
+  );
 
   // Local state for allocation before approval
-  const [mandatory, setMandatory] = useState(budgetPlan.mandatory ?? 10);
-  const [discretionary, setDiscretionary] = useState(budgetPlan.discretionary ?? 5);
-  const [savings, setSavings] = useState(budgetPlan.savings ?? 10);
+  const [mandatory, setMandatory] = useState(() => {
+    if (budgetPlan.isApproved || budgetPlan.mandatory > 0) return budgetPlan.mandatory;
+    return Math.floor(totalAvailable * 0.4);
+  });
+  const [discretionary, setDiscretionary] = useState(() => {
+    if (budgetPlan.isApproved || budgetPlan.discretionary > 0) return budgetPlan.discretionary;
+    return Math.floor(totalAvailable * 0.25);
+  });
+  const [savings, setSavings] = useState(() => {
+    if (budgetPlan.isApproved || budgetPlan.savings > 0) return budgetPlan.savings;
+    const m = Math.floor(totalAvailable * 0.4);
+    const d = Math.floor(totalAvailable * 0.25);
+    return totalAvailable - m - d;
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalAllocated = mandatory + discretionary + savings;
   const remainingBudget = totalAvailable - totalAllocated;
+  const isFullyAllocated = remainingBudget === 0;
 
   const handleAdjust = (category: 'mand' | 'disc' | 'sav', delta: number) => {
-    if (delta > 0 && remainingBudget < delta) {
-      alert('Недостаточно свободного бюджета для распределения!');
-      return;
+    if (delta > 0) {
+      if (remainingBudget <= 0) return;
+      const actualDelta = Math.min(delta, remainingBudget);
+      if (category === 'mand') setMandatory((prev) => prev + actualDelta);
+      else if (category === 'disc') setDiscretionary((prev) => prev + actualDelta);
+      else if (category === 'sav') setSavings((prev) => prev + actualDelta);
+    } else {
+      const absDelta = Math.abs(delta);
+      if (category === 'mand') setMandatory((prev) => Math.max(0, prev - absDelta));
+      else if (category === 'disc') setDiscretionary((prev) => Math.max(0, prev - absDelta));
+      else if (category === 'sav') setSavings((prev) => Math.max(0, prev - absDelta));
     }
+  };
 
-    if (category === 'mand') {
-      setMandatory((prev) => Math.max(0, prev + delta));
-    } else if (category === 'disc') {
-      setDiscretionary((prev) => Math.max(0, prev + delta));
-    } else if (category === 'sav') {
-      setSavings((prev) => Math.max(0, prev + delta));
-    }
+  const handleDirectSet = (category: 'mand' | 'disc' | 'sav', valStr: string) => {
+    const cleaned = valStr.replace(/[^0-9]/g, '');
+    const num = cleaned === '' ? 0 : parseInt(cleaned, 10);
+    const otherSum =
+      category === 'mand'
+        ? discretionary + savings
+        : category === 'disc'
+        ? mandatory + savings
+        : mandatory + discretionary;
+    const maxAllowed = Math.max(0, totalAvailable - otherSum);
+    const clamped = Math.min(num, maxAllowed);
+    if (category === 'mand') setMandatory(clamped);
+    else if (category === 'disc') setDiscretionary(clamped);
+    else if (category === 'sav') setSavings(clamped);
+  };
+
+  const handleAllocateRemaining = (category: 'mand' | 'disc' | 'sav') => {
+    if (remainingBudget <= 0) return;
+    handleAdjust(category, remainingBudget);
   };
 
   const handleApprove = () => {
     if (isSubmitting) return;
-    if (totalAllocated > totalAvailable) {
-      alert('Сумма плана не может превышать доступный бюджет!');
+    if (remainingBudget > 0) {
+      alert(
+        `Нельзя оставлять деньги нераспределёнными! Осталось распределить: ${remainingBudget} монет. Добавь их в одну из статей.`
+      );
+      return;
+    }
+    if (remainingBudget < 0) {
+      alert(`Сумма плана превышает доступный лимит на ${Math.abs(remainingBudget)} монет!`);
       return;
     }
     setIsSubmitting(true);
@@ -114,17 +168,21 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
           <View style={styles.overviewRow}>
             <View>
               <Text style={styles.overviewSub}>Доступный доход периода:</Text>
-              <Text style={styles.overviewAmount}>{totalAvailable} монет</Text>
+              <Text style={styles.overviewAmount}>{totalAvailable} {getCoinWord(totalAvailable)}</Text>
             </View>
             <View style={styles.remainingBadge}>
               <Text style={styles.remainingLabel}>Не распределено:</Text>
               <Text
                 style={[
                   styles.remainingVal,
-                  remainingBudget < 0 ? styles.remainingNegative : styles.remainingPositive,
+                  remainingBudget === 0
+                    ? styles.remainingZero
+                    : remainingBudget > 0
+                    ? styles.remainingWarning
+                    : styles.remainingNegative,
                 ]}
               >
-                {remainingBudget} монет
+                {remainingBudget === 0 ? '0 (всё готово! ✓)' : `${remainingBudget} ${getCoinWord(remainingBudget)}`}
               </Text>
             </View>
           </View>
@@ -150,6 +208,22 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
               ]}
             />
           </View>
+
+          {/* Notice about unallocated coins */}
+          {!budgetPlan.isApproved && remainingBudget > 0 && (
+            <View style={styles.unallocatedNotice}>
+              <Text style={styles.unallocatedNoticeText}>
+                ⚠️ Осталось распределить: <Text style={{ fontWeight: '900' }}>{remainingBudget} {getCoinWord(remainingBudget)}</Text>. Нельзя оставлять монеты нераспределёнными — добавь их кнопками «+», «+Всё» или введи число!
+              </Text>
+            </View>
+          )}
+          {!budgetPlan.isApproved && remainingBudget === 0 && (
+            <View style={styles.allocatedSuccessNotice}>
+              <Text style={styles.allocatedSuccessNoticeText}>
+                ✓ Доход полностью распределён (0 монет остатка). Теперь можно утвердить план!
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* 3 Categories Allocators (ТЗ 2.5.5: Обязательные, Необязательные, Накопления) */}
@@ -164,32 +238,66 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
           </View>
           <View style={styles.catInfo}>
             <Text style={styles.catTitle}>1. Обязательные расходы</Text>
-            <Text style={styles.catDesc}>Еда, здоровье и уход за Финни</Text>
+            <Text style={styles.catDesc}>Еда, здоровье и уход за {petName}</Text>
             {budgetPlan.isApproved && (
               <Text style={styles.factLine}>
-                Факт трат: {budgetFact.mandatory} из {budgetPlan.mandatory} монет
+                Факт трат: {budgetFact.mandatory} из {budgetPlan.mandatory} {getCoinWord(budgetPlan.mandatory)}
               </Text>
             )}
           </View>
           {!budgetPlan.isApproved ? (
-            <View style={styles.stepper}>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjust('mand', -5)}
-              >
-                <IconMinus size={14} color="#334155" />
-              </TouchableOpacity>
-              <Text style={styles.stepVal}>{mandatory}</Text>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjust('mand', 5)}
-              >
-                <IconPlus size={14} color="#334155" />
-              </TouchableOpacity>
+            <View style={styles.allocatorCol}>
+              <View style={styles.stepper}>
+                <TouchableOpacity
+                  style={[styles.stepBtn, mandatory <= 0 && styles.stepBtnDisabled]}
+                  onPress={() => handleAdjust('mand', -1)}
+                  disabled={mandatory <= 0}
+                  activeOpacity={0.7}
+                >
+                  <IconMinus size={14} color={mandatory <= 0 ? '#94A3B8' : '#334155'} />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.stepInput}
+                  value={String(mandatory)}
+                  keyboardType="numeric"
+                  onChangeText={(val) => handleDirectSet('mand', val)}
+                  maxLength={4}
+                  selectTextOnFocus
+                />
+                <TouchableOpacity
+                  style={[styles.stepBtn, remainingBudget <= 0 && styles.stepBtnDisabled]}
+                  onPress={() => handleAdjust('mand', 1)}
+                  disabled={remainingBudget <= 0}
+                  activeOpacity={0.7}
+                >
+                  <IconPlus size={14} color={remainingBudget <= 0 ? '#94A3B8' : '#334155'} />
+                </TouchableOpacity>
+              </View>
+
+              {remainingBudget > 0 && (
+                <View style={styles.quickStepRow}>
+                  {remainingBudget >= 5 && (
+                    <TouchableOpacity
+                      style={styles.quickStepBtn}
+                      onPress={() => handleAdjust('mand', 5)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickStepText}>+5</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.quickStepAllBtn}
+                    onPress={() => handleAllocateRemaining('mand')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickStepAllText}>+Всё ({remainingBudget})</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.approvedPlanBadge}>
-              <Text style={styles.approvedPlanText}>{budgetPlan.mandatory} монет</Text>
+              <Text style={styles.approvedPlanText}>{budgetPlan.mandatory} {getCoinWord(budgetPlan.mandatory)}</Text>
             </View>
           )}
         </View>
@@ -204,29 +312,63 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
             <Text style={styles.catDesc}>Краски, наклейки, уютные вещи</Text>
             {budgetPlan.isApproved && (
               <Text style={styles.factLine}>
-                Факт трат: {budgetFact.discretionary} из {budgetPlan.discretionary} монет
+                Факт трат: {budgetFact.discretionary} из {budgetPlan.discretionary} {getCoinWord(budgetPlan.discretionary)}
               </Text>
             )}
           </View>
           {!budgetPlan.isApproved ? (
-            <View style={styles.stepper}>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjust('disc', -5)}
-              >
-                <IconMinus size={14} color="#334155" />
-              </TouchableOpacity>
-              <Text style={styles.stepVal}>{discretionary}</Text>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjust('disc', 5)}
-              >
-                <IconPlus size={14} color="#334155" />
-              </TouchableOpacity>
+            <View style={styles.allocatorCol}>
+              <View style={styles.stepper}>
+                <TouchableOpacity
+                  style={[styles.stepBtn, discretionary <= 0 && styles.stepBtnDisabled]}
+                  onPress={() => handleAdjust('disc', -1)}
+                  disabled={discretionary <= 0}
+                  activeOpacity={0.7}
+                >
+                  <IconMinus size={14} color={discretionary <= 0 ? '#94A3B8' : '#334155'} />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.stepInput}
+                  value={String(discretionary)}
+                  keyboardType="numeric"
+                  onChangeText={(val) => handleDirectSet('disc', val)}
+                  maxLength={4}
+                  selectTextOnFocus
+                />
+                <TouchableOpacity
+                  style={[styles.stepBtn, remainingBudget <= 0 && styles.stepBtnDisabled]}
+                  onPress={() => handleAdjust('disc', 1)}
+                  disabled={remainingBudget <= 0}
+                  activeOpacity={0.7}
+                >
+                  <IconPlus size={14} color={remainingBudget <= 0 ? '#94A3B8' : '#334155'} />
+                </TouchableOpacity>
+              </View>
+
+              {remainingBudget > 0 && (
+                <View style={styles.quickStepRow}>
+                  {remainingBudget >= 5 && (
+                    <TouchableOpacity
+                      style={styles.quickStepBtn}
+                      onPress={() => handleAdjust('disc', 5)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickStepText}>+5</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.quickStepAllBtn}
+                    onPress={() => handleAllocateRemaining('disc')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickStepAllText}>+Всё ({remainingBudget})</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.approvedPlanBadge}>
-              <Text style={styles.approvedPlanText}>{budgetPlan.discretionary} монет</Text>
+              <Text style={styles.approvedPlanText}>{budgetPlan.discretionary} {getCoinWord(budgetPlan.discretionary)}</Text>
             </View>
           )}
         </View>
@@ -241,46 +383,98 @@ export const PlanScreen: React.FC<PlanScreenProps> = ({
             <Text style={styles.catDesc}>Цель: «{activeGoal.title}»</Text>
             {budgetPlan.isApproved && (
               <Text style={styles.factLine}>
-                Факт отложено: {budgetFact.savings} из {budgetPlan.savings} монет
+                Факт отложено: {budgetFact.savings} из {budgetPlan.savings} {getCoinWord(budgetPlan.savings)}
               </Text>
             )}
           </View>
           {!budgetPlan.isApproved ? (
-            <View style={styles.stepper}>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjust('sav', -5)}
-              >
-                <IconMinus size={14} color="#334155" />
-              </TouchableOpacity>
-              <Text style={styles.stepVal}>{savings}</Text>
-              <TouchableOpacity
-                style={styles.stepBtn}
-                onPress={() => handleAdjust('sav', 5)}
-              >
-                <IconPlus size={14} color="#334155" />
-              </TouchableOpacity>
+            <View style={styles.allocatorCol}>
+              <View style={styles.stepper}>
+                <TouchableOpacity
+                  style={[styles.stepBtn, savings <= 0 && styles.stepBtnDisabled]}
+                  onPress={() => handleAdjust('sav', -1)}
+                  disabled={savings <= 0}
+                  activeOpacity={0.7}
+                >
+                  <IconMinus size={14} color={savings <= 0 ? '#94A3B8' : '#334155'} />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.stepInput}
+                  value={String(savings)}
+                  keyboardType="numeric"
+                  onChangeText={(val) => handleDirectSet('sav', val)}
+                  maxLength={4}
+                  selectTextOnFocus
+                />
+                <TouchableOpacity
+                  style={[styles.stepBtn, remainingBudget <= 0 && styles.stepBtnDisabled]}
+                  onPress={() => handleAdjust('sav', 1)}
+                  disabled={remainingBudget <= 0}
+                  activeOpacity={0.7}
+                >
+                  <IconPlus size={14} color={remainingBudget <= 0 ? '#94A3B8' : '#334155'} />
+                </TouchableOpacity>
+              </View>
+
+              {remainingBudget > 0 && (
+                <View style={styles.quickStepRow}>
+                  {remainingBudget >= 5 && (
+                    <TouchableOpacity
+                      style={styles.quickStepBtn}
+                      onPress={() => handleAdjust('sav', 5)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickStepText}>+5</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={styles.quickStepAllBtn}
+                    onPress={() => handleAllocateRemaining('sav')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickStepAllText}>+Всё ({remainingBudget})</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           ) : (
             <View style={styles.approvedPlanBadge}>
-              <Text style={styles.approvedPlanText}>{budgetPlan.savings} монет</Text>
+              <Text style={styles.approvedPlanText}>{budgetPlan.savings} {getCoinWord(budgetPlan.savings)}</Text>
             </View>
           )}
         </View>
 
         {/* Approval or Advance Period Action */}
         {!budgetPlan.isApproved ? (
-          <TouchableOpacity
-            style={[styles.approveBtn, isSubmitting && { opacity: 0.6 }]}
-            onPress={handleApprove}
-            disabled={isSubmitting}
-            activeOpacity={0.85}
-          >
-            <IconCheck size={18} color="#FFFFFF" />
-            <Text style={styles.approveBtnText}>
-              {isSubmitting ? 'Сохранение плана...' : 'Утвердить личный план бюджета'}
-            </Text>
-          </TouchableOpacity>
+          <View>
+            <TouchableOpacity
+              style={[
+                styles.approveBtn,
+                !isFullyAllocated && styles.approveBtnDisabled,
+                isSubmitting && { opacity: 0.6 },
+              ]}
+              onPress={handleApprove}
+              disabled={!isFullyAllocated || isSubmitting}
+              activeOpacity={0.85}
+            >
+              <IconCheck size={18} color="#FFFFFF" />
+              <Text style={styles.approveBtnText}>
+                {isSubmitting
+                  ? 'Сохранение плана...'
+                  : remainingBudget > 0
+                  ? `Осталось распределить: ${remainingBudget} ${getCoinWord(remainingBudget)}`
+                  : remainingBudget < 0
+                  ? `Превышение лимита на ${Math.abs(remainingBudget)}`
+                  : '✓ Утвердить личный план бюджета'}
+              </Text>
+            </TouchableOpacity>
+
+            {!isFullyAllocated && remainingBudget > 0 && (
+              <Text style={styles.approveHintText}>
+                ⚠️ По правилам планирования нельзя оставлять нераспределённые монеты
+              </Text>
+            )}
+          </View>
         ) : (
           <View style={styles.approvedActions}>
             <View style={styles.planSuccessBanner}>
@@ -417,8 +611,42 @@ const styles = StyleSheet.create({
   remainingPositive: {
     color: '#16A34A',
   },
+  remainingZero: {
+    color: '#16A34A',
+  },
+  remainingWarning: {
+    color: '#D97706',
+  },
   remainingNegative: {
     color: '#DC2626',
+  },
+  unallocatedNotice: {
+    marginTop: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  unallocatedNoticeText: {
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 17,
+    fontWeight: '500',
+  },
+  allocatedSuccessNotice: {
+    marginTop: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 10,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  allocatedSuccessNoticeText: {
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '700',
+    textAlign: 'center',
   },
   multiBar: {
     height: 12,
@@ -482,13 +710,16 @@ const styles = StyleSheet.create({
     color: '#15803D',
     marginTop: 4,
   },
+  allocatorCol: {
+    alignItems: 'flex-end',
+  },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderRadius: 12,
-    padding: 4,
-    gap: 8,
+    padding: 3,
+    gap: 4,
   },
   stepBtn: {
     width: 28,
@@ -499,6 +730,57 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#CBD5E1',
+  },
+  stepBtnDisabled: {
+    opacity: 0.35,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+  },
+  stepInput: {
+    width: 44,
+    height: 30,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+    paddingVertical: 0,
+    paddingHorizontal: 2,
+  },
+  quickStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  quickStepBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickStepText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  quickStepAllBtn: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  quickStepAllText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#2563EB',
   },
   stepVal: {
     fontSize: 14,
@@ -528,10 +810,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginTop: 14,
   },
+  approveBtnDisabled: {
+    backgroundColor: '#94A3B8',
+  },
   approveBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  approveHintText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 6,
   },
   approvedActions: {
     gap: 12,

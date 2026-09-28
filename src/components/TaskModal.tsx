@@ -20,14 +20,21 @@ import {
 } from './GameIcons';
 import { FinancialTask, TaskOption } from '../types/gameTypes';
 import { gameStore } from '../state/gameStore';
+import { replacePetName } from '../utils/textUtils';
 
 interface TaskModalProps {
   visible: boolean;
   task: FinancialTask | null;
+  petName?: string;
   onClose: () => void;
 }
 
-export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) => {
+export const TaskModal: React.FC<TaskModalProps> = ({
+  visible,
+  task,
+  petName = 'Финни',
+  onClose,
+}) => {
   const [selectedOption, setSelectedOption] = useState<TaskOption | null>(null);
   const [feedback, setFeedback] = useState<{
     isCorrect: boolean;
@@ -104,13 +111,17 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
             </View>
 
             <View style={styles.scenarioCard}>
-              <Text style={styles.scenarioText}>{task.situation || task.scenario}</Text>
+              <Text style={styles.scenarioText}>
+                {replacePetName(task.situation || task.scenario, petName)}
+              </Text>
 
               {/* Available Resources badge */}
               {(task as any).availableResources && (
                 <View style={styles.resourcesBox}>
                   <Text style={styles.resourcesLabel}>Доступные ресурсы:</Text>
-                  <Text style={styles.resourcesText}>{(task as any).availableResources}</Text>
+                  <Text style={styles.resourcesText}>
+                    {replacePetName((task as any).availableResources, petName)}
+                  </Text>
                 </View>
               )}
             </View>
@@ -118,7 +129,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
             {/* Options or Feedback */}
             {!feedback ? (
               <View style={styles.optionsContainer}>
-                <Text style={styles.promptText}>Как ты посоветуешь поступить Финни?</Text>
+                <Text style={styles.promptText}>Как ты посоветуешь поступить {petName}?</Text>
                 {task.options.map((option, idx) => (
                   <TouchableOpacity
                     key={option.id}
@@ -132,7 +143,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                         {idx === 0 ? 'A' : idx === 1 ? 'B' : 'C'}
                       </Text>
                     </View>
-                    <Text style={styles.optionText}>{option.text}</Text>
+                    <Text style={styles.optionText}>{replacePetName(option.text, petName)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -165,7 +176,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({ visible, task, onClose }) 
                     </Text>
                   </View>
 
-                  <Text style={styles.explanationText}>{feedback.explanation}</Text>
+                  <Text style={styles.explanationText}>
+                    {replacePetName(feedback.explanation, petName)}
+                  </Text>
 
                   {/* Outcome changes */}
                   <View style={styles.outcomeRow}>

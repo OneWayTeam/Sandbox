@@ -6,6 +6,7 @@ import {
   Image,
   Dimensions,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { TopHeader } from '../components/TopHeader';
 import { FloatingActions } from '../components/FloatingActions';
@@ -79,11 +80,16 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
         onPressSettings={onOpenParentZone}
       />
 
-      {/* 3. VITALS HUD BARS (ТЗ 2.5.3: Сытость, Настроение) */}
+      {/* 3. VITALS HUD BARS (Период, Сытость, Настроение, Доступ взрослым) */}
       <View style={styles.vitalsContainer}>
+        {/* Period Badge */}
+        <View style={styles.periodPill}>
+          <Text style={styles.periodText}>Период {period}</Text>
+        </View>
+
         {/* Satiety Bar */}
         <View style={styles.vitalPill}>
-          <IconApple size={16} />
+          <IconApple size={15} />
           <View style={styles.vitalBarBg}>
             <View
               style={[
@@ -97,7 +103,7 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
 
         {/* Mood Bar */}
         <View style={styles.vitalPill}>
-          <IconPalette size={16} />
+          <IconPalette size={15} />
           <View style={styles.vitalBarBg}>
             <View
               style={[
@@ -115,7 +121,7 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
           onPress={onOpenParentZone}
           activeOpacity={0.85}
         >
-          <IconShieldCheck size={18} color="#2563EB" />
+          <IconShieldCheck size={16} color="#2563EB" />
           <Text style={styles.parentQuickText}>Взрослым</Text>
         </TouchableOpacity>
       </View>
@@ -154,15 +160,7 @@ export const RoomScreen: React.FC<RoomScreenProps> = ({
         </View>
       ) : null}
 
-      {/* 5. FINNY'S THOUGHT BUBBLE / STATUS TEXT */}
-      <View
-        style={[
-          styles.statusBubble,
-          !activeTask && styles.statusBubbleNoTask,
-        ]}
-      >
-        <Text style={styles.statusText} numberOfLines={2}>{petState.statusText}</Text>
-      </View>
+
 
       {/* 6. FLOATING ACTION BUTTONS (Right Side) */}
       <FloatingActions
@@ -205,22 +203,38 @@ const styles = StyleSheet.create({
   },
   vitalsContainer: {
     position: 'absolute',
-    top: 68,
+    top: Platform.OS === 'ios' ? 104 : 76,
     left: 16,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     zIndex: 15,
+  },
+  periodPill: {
+    backgroundColor: '#3B291D',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  periodText: {
+    color: '#FDE68A',
+    fontSize: 11,
+    fontWeight: '800',
   },
   vitalPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    paddingHorizontal: 7,
     paddingVertical: 5,
     borderRadius: 14,
-    gap: 6,
+    gap: 5,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
@@ -230,7 +244,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   vitalBarBg: {
-    width: 48,
+    width: 42,
     height: 8,
     backgroundColor: '#E2E8F0',
     borderRadius: 4,
@@ -241,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   vitalText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: '#334155',
   },
@@ -249,7 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(239, 246, 255, 0.95)',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1,
@@ -264,12 +278,12 @@ const styles = StyleSheet.create({
   },
   activeTaskBanner: {
     position: 'absolute',
-    top: 108,
+    top: Platform.OS === 'ios' ? 146 : 118,
     left: 16,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 14,
@@ -318,7 +332,7 @@ const styles = StyleSheet.create({
   },
   taskCompletedBanner: {
     position: 'absolute',
-    top: 108,
+    top: Platform.OS === 'ios' ? 146 : 118,
     left: 16,
     right: 16,
     flexDirection: 'row',
@@ -357,9 +371,9 @@ const styles = StyleSheet.create({
   },
   statusBubble: {
     position: 'absolute',
-    top: 154,
+    top: Platform.OS === 'ios' ? 200 : 172,
     alignSelf: 'center',
-    maxWidth: '82%',
+    maxWidth: '84%',
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -374,7 +388,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statusBubbleNoTask: {
-    top: 110,
+    top: Platform.OS === 'ios' ? 150 : 122,
   },
   statusText: {
     fontSize: 12,

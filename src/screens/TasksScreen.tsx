@@ -23,11 +23,13 @@ import {
 import { FinancialTask, TaskTheme, GameAchievement } from '../types/gameTypes';
 import { TaskModal } from '../components/TaskModal';
 import { gameStore } from '../state/gameStore';
+import { replacePetName } from '../utils/textUtils';
 
 interface TasksScreenProps {
   coins: number;
   tasks: FinancialTask[];
   subCategory?: string;
+  petName?: string;
   onBackToRoom: () => void;
 }
 
@@ -37,6 +39,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
   coins,
   tasks,
   subCategory = 'all',
+  petName = 'Финни',
   onBackToRoom,
 }) => {
   const [selectedTheme, setSelectedTheme] = useState<'all' | TaskTheme | 'trophies'>('all');
@@ -103,7 +106,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
     {
       id: 'ach_master',
       title: 'Мастер-иллюстратор',
-      description: 'Помоги Финни вырасти до 3-й стадии финансовой зрелости',
+      description: `Помоги ${petName} вырасти до 3-й стадии финансовой зрелости`,
       iconName: 'medal',
       unlocked: state.profile.stage === 3,
       rewardCoins: 20,
@@ -165,6 +168,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.themeScrollView}
           contentContainerStyle={styles.themeRow}
         >
           <TouchableOpacity
@@ -305,9 +309,9 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
                   <View style={styles.themeBadge}>
                     <Text style={styles.themeBadgeText}>{task.themeTitle}</Text>
                   </View>
-                  <Text style={styles.questName}>{task.title}</Text>
+                  <Text style={styles.questName}>{replacePetName(task.title, petName)}</Text>
                   <Text style={styles.questDesc} numberOfLines={2}>
-                    {task.scenario}
+                    {replacePetName(task.scenario, petName)}
                   </Text>
 
                   <View style={styles.rewardTag}>
@@ -341,6 +345,7 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
       <TaskModal
         visible={!!activeTask}
         task={activeTask}
+        petName={petName}
         onClose={() => setActiveTask(null)}
       />
     </View>
@@ -444,27 +449,45 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  themeScrollView: {
+    height: 42,
+    maxHeight: 42,
+    marginBottom: 10,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   themeRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 10,
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
   },
   themeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
+    height: 34,
+    minHeight: 34,
+    paddingHorizontal: 14,
+    borderRadius: 17,
     backgroundColor: '#F1F5F9',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   themeChipActive: {
     backgroundColor: COLORS.primaryDark,
     borderColor: COLORS.primaryDark,
   },
+  themeChipActiveTrophies: {
+    backgroundColor: '#D97706',
+    borderColor: '#D97706',
+  },
   themeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#475569',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   themeTextActive: {
     color: '#FFFFFF',
@@ -556,10 +579,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#FFFFFF',
-  },
-  themeChipActiveTrophies: {
-    backgroundColor: '#D97706',
-    borderColor: '#B45309',
   },
   trophyCard: {
     flexDirection: 'row',

@@ -19,6 +19,7 @@ export interface StateEvaluationContext {
   tasksCompletedInPeriod: number;
   activeGoalPercent?: number;
   lastActionType?: string;
+  petName?: string;
 }
 
 /**
@@ -37,7 +38,10 @@ export class PetStateManager {
       tasksCompletedInPeriod,
       activeGoalPercent = 0,
       lastActionType,
+      petName = 'Питомец',
     } = ctx;
+
+    const name = petName.trim() || 'Питомец';
 
     // 1. EXCITED: Big financial progress or recent saving / trophy
     if (
@@ -48,8 +52,8 @@ export class PetStateManager {
     ) {
       return {
         moodState: 'excited',
-        statusText: 'Финни полон вдохновения и энергии!',
-        explanation: 'Мечта становится всё ближе! Финни вдохновлен твоими финансовыми успехами.',
+        statusText: `${name} полон вдохновения и энергии!`,
+        explanation: `Мечта становится всё ближе! ${name} вдохновлен твоими финансовыми успехами.`,
         actionAdvice: 'Продолжай двигаться к цели — ты отлично управляешь монетами!',
         isTemporary: true,
       };
@@ -59,9 +63,9 @@ export class PetStateManager {
     if (satiety < 35 || (plannedMandatory > 0 && actualMandatory === 0 && satiety < 50)) {
       return {
         moodState: 'worried',
-        statusText: 'Финни проголодался и ждёт обеда.',
+        statusText: `${name} проголодался и ждёт обеда.`,
         explanation:
-          'В этом периоде обязательные траты ещё не закрыты. Финни нужно полезное подкрепление.',
+          `В этом периоде обязательные траты ещё не закрыты. ${name} нужно полезное подкрепление.`,
         actionAdvice:
           'Загляни в лавку и закрой обязательные нужды (сладкую морковку или витаминный сбор), либо проверь план бюджета.',
         isTemporary: true,
@@ -72,11 +76,11 @@ export class PetStateManager {
     if (tasksCompletedInPeriod >= 3 && mood < 40) {
       return {
         moodState: 'tired',
-        statusText: 'Финни немного устал после заданий.',
+        statusText: `${name} немного устал после заданий.`,
         explanation:
-          'Финни много трудился в парке заданий. Мозгу тоже нужен отдых и вкусное яблоко!',
+          `${name} много трудился в парке заданий. Мозгу тоже нужен отдых и вкусное яблоко!`,
         actionAdvice:
-          'Погладь питомца в комнате или заверши период, чтобы Финни набрался сил.',
+          `Погладь питомца в комнате или заверши период, чтобы ${name} набрался сил.`,
         isTemporary: true,
       };
     }
@@ -85,9 +89,9 @@ export class PetStateManager {
     if (satiety >= 60 && mood >= 50) {
       return {
         moodState: 'happy',
-        statusText: 'Финни сыт, доволен и весело машет лапкой!',
+        statusText: `${name} сыт, доволен и весело машет лапкой!`,
         explanation:
-          'Ты отлично позаботился о важных покупках — Финни сыт, в комнате тепло и уютно.',
+          `Ты отлично позаботился о важных покупках — ${name} сыт, в комнате тепло и уютно.`,
         actionAdvice:
           'Всё идет замечательно. Можно отложить пару монет в золотой сейф или присмотреть одежду.',
         isTemporary: true,
@@ -99,7 +103,7 @@ export class PetStateManager {
       moodState: 'calm',
       statusText: 'Всё спокойно и идёт по плану.',
       explanation:
-        'Бюджет под контролем. Финни готов к новым урокам рисования и финансовым открытиям.',
+        `Бюджет под контролем. ${name} готов к новым урокам рисования и финансовым открытиям.`,
       actionAdvice:
         'Проверь план на текущий период и сделай шаги к своей мечте.',
       isTemporary: true,

@@ -12,6 +12,7 @@ interface TopHeaderProps {
   stageTitle?: string;
   avatarSource?: any;
   appearance?: PetAppearance;
+  showPeriod?: boolean;
   onPressProfile?: () => void;
   onPressSettings?: () => void;
 }
@@ -23,12 +24,13 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   stageTitle = 'Юный финансист',
   avatarSource,
   appearance,
+  showPeriod = false,
   onPressProfile,
   onPressSettings,
 }) => {
   return (
     <View style={styles.container}>
-      {/* Left Column: Profile & Period */}
+      {/* Left Column: Profile */}
       <View style={styles.leftCol}>
         {/* Profile Pill */}
         <TouchableOpacity
@@ -53,10 +55,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* Period Pill */}
-        <View style={styles.periodPill}>
-          <Text style={styles.periodText}>Период {period}</Text>
-        </View>
+        {/* Period Pill (only shown when explicitly requested) */}
+        {showPeriod && (
+          <View style={styles.periodPill}>
+            <Text style={styles.periodText}>Период {period}</Text>
+          </View>
+        )}
       </View>
 
       {/* Right Column: Balance & Settings */}

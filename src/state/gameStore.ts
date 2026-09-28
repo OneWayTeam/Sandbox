@@ -170,13 +170,25 @@ class GameStore {
     return res;
   }
 
-  public claimDailyReward(amount: number, title: string = 'Ежедневная награда') {
-    const res = this.engine.receiveIncome(amount, 'daily_reward', title, 'reward');
+  public canClaimDailyReward(): boolean {
+    return this.engine.canClaimDailyReward();
+  }
+
+  public canScratchTicket(): boolean {
+    return this.engine.canScratchTicket();
+  }
+
+  public claimDailyReward(amount: number = 10, title: string = 'Ежедневный подарок') {
+    const res = this.engine.claimDailyReward(amount, title);
     if (res.success) {
-      this.engine.updatePetState({
-        mood: Math.min(100, this.engine.getState().petState.mood + 10),
-        statusText: `Получена награда: +${amount} монет!`,
-      });
+      this.notify();
+    }
+    return res;
+  }
+
+  public claimScratchReward(amount: number = 15, title: string = 'Счастливый билет') {
+    const res = this.engine.claimScratchReward(amount, title);
+    if (res.success) {
       this.notify();
     }
     return res;

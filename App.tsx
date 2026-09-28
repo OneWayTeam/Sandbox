@@ -21,6 +21,7 @@ import {
 } from './src/components/Modals';
 import { ParentZoneModal } from './src/components/ParentZoneModal';
 import { OnboardingModal } from './src/components/OnboardingModal';
+import { MiniProfileModal } from './src/components/MiniProfileModal';
 import { PeriodSummaryModal } from './src/components/PeriodSummaryModal';
 import { TaskModal } from './src/components/TaskModal';
 import { gameStore, GameState } from './src/state/gameStore';
@@ -48,15 +49,9 @@ export default function App() {
   const [collectModalVisible, setCollectModalVisible] = useState(false);
   const [scratchModalVisible, setScratchModalVisible] = useState(false);
   const [parentZoneVisible, setParentZoneVisible] = useState(false);
-  const [onboardingVisible, setOnboardingVisible] = useState(!gameState.profile.onboardingCompleted);
+  const [miniProfileVisible, setMiniProfileVisible] = useState(false);
   const [activeTaskModal, setActiveTaskModal] = useState<FinancialTask | null>(null);
   const [periodSummary, setPeriodSummary] = useState<PeriodSummary | null>(null);
-
-  useEffect(() => {
-    if (!gameState.profile.onboardingCompleted) {
-      setOnboardingVisible(true);
-    }
-  }, [gameState.profile.onboardingCompleted]);
 
   // Android Hardware Back Button Handling
   useEffect(() => {
@@ -81,8 +76,8 @@ export default function App() {
         setParentZoneVisible(false);
         return true;
       }
-      if (onboardingVisible && gameState.profile.onboardingCompleted) {
-        setOnboardingVisible(false);
+      if (miniProfileVisible) {
+        setMiniProfileVisible(false);
         return true;
       }
       if (currentLocation !== 'room') {
@@ -100,7 +95,7 @@ export default function App() {
     collectModalVisible,
     scratchModalVisible,
     parentZoneVisible,
-    onboardingVisible,
+    miniProfileVisible,
     gameState.profile.onboardingCompleted,
     currentLocation,
   ]);
@@ -152,6 +147,40 @@ export default function App() {
 
   const isWeb = Platform.OS === 'web';
   const isWideScreen = isWeb && windowWidth > 540;
+  const petName = gameState.profile.petName || 'Финни';
+
+  // 1. Separate dedicated window for first launch / onboarding
+  if (!gameState.profile.onboardingCompleted) {
+    return (
+      <View style={styles.rootBackground}>
+        <StatusBar barStyle="dark-content" />
+        <View
+          style={[
+            styles.deviceFrame,
+            isWideScreen && {
+              width: Math.min(440, windowWidth - 32),
+              height: Math.min(920, windowHeight - 32),
+              borderRadius: 36,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 16 },
+              shadowOpacity: 0.35,
+              shadowRadius: 32,
+              elevation: 20,
+            },
+          ]}
+        >
+          <SafeAreaView style={[styles.safeArea, { backgroundColor: '#FAF5EE' }]}>
+            <OnboardingModal
+              visible={true}
+              isStandalone={true}
+              onClose={() => {}}
+            />
+          </SafeAreaView>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.rootBackground}>
@@ -190,7 +219,7 @@ export default function App() {
                 onCollectReward={() => setCollectModalVisible(true)}
                 onOpenShop={() => navigateTo('shop')}
                 onOpenScratch={() => setScratchModalVisible(true)}
-                onOpenProfile={() => setOnboardingVisible(true)}
+                onOpenProfile={() => setMiniProfileVisible(true)}
                 onOpenParentZone={() => setParentZoneVisible(true)}
                 onGoalCardPress={() => navigateTo('savings')}
                 onOpenTaskPress={() => setActiveTaskModal(pendingTask)}
@@ -204,6 +233,7 @@ export default function App() {
                 budgetPlan={gameState.budgetPlan}
                 budgetFact={gameState.budgetFact}
                 activeGoal={activeGoal}
+                petName={petName}
                 onBackToRoom={() => navigateTo('room')}
                 onPeriodAdvanced={() => {
                   const summaries = gameStore.getState().periodSummaries;
@@ -218,6 +248,7 @@ export default function App() {
               <ShopScreen
                 coins={gameState.coins}
                 subCategory={subCategory}
+                petName={petName}
                 onBackToRoom={() => navigateTo('room')}
                 onNavigateToTasks={() => navigateTo('tasks')}
               />
@@ -229,6 +260,7 @@ export default function App() {
                 goals={gameState.goals}
                 activeGoalId={gameState.activeGoalId}
                 subCategory={subCategory}
+                petName={petName}
                 onDeposit={handleDepositToGoal}
                 onBackToRoom={() => navigateTo('room')}
               />
@@ -239,6 +271,7 @@ export default function App() {
                 coins={gameState.coins}
                 tasks={gameState.tasks}
                 subCategory={subCategory}
+                petName={petName}
                 onBackToRoom={() => navigateTo('room')}
               />
             )}
@@ -255,14 +288,17 @@ export default function App() {
           {/* Modals & Overlays */}
           <CollectModal
             visible={collectModalVisible}
+            isAvailable={gameStore.canClaimDailyReward()}
+            petName={petName}
             onClose={() => setCollectModalVisible(false)}
-            onClaim={(amt) => handleClaimDailyReward(amt, 'Ежедневный подарок')}
+            onClaim={(amt) => gameStore.claimDailyReward(amt, 'Ежедневный подарок')}
           />
 
           <ScratchModal
             visible={scratchModalVisible}
+            isAvailable={gameStore.canScratchTicket()}
             onClose={() => setScratchModalVisible(false)}
-            onReward={(amt) => handleClaimDailyReward(amt, 'Счастливый билет')}
+            onReward={(amt) => gameStore.claimScratchReward(amt, 'Счастливый билет')}
           />
 
           {/* Parent & Expert Review Modal (ТЗ 2.5.12 & 2.5.13) */}
@@ -271,16 +307,22 @@ export default function App() {
             onClose={() => setParentZoneVisible(false)}
           />
 
-          {/* Onboarding & Customization (ТЗ 2.5.1 & 2.5.2) */}
-          <OnboardingModal
-            visible={onboardingVisible}
-            onClose={() => setOnboardingVisible(false)}
+          {/* Mini-Profile Modal (ТЗ: просмотр статуса без перезапуска анкеты) */}
+          <MiniProfileModal
+            visible={miniProfileVisible}
+            onClose={() => setMiniProfileVisible(false)}
+            onOpenSettings={() => {
+              setMiniProfileVisible(false);
+              setParentZoneVisible(true);
+            }}
+            gameState={gameState}
           />
 
           {/* Interactive Task Scenario Modal */}
           <TaskModal
             visible={!!activeTaskModal}
             task={activeTaskModal}
+            petName={petName}
             onClose={() => setActiveTaskModal(null)}
           />
 
@@ -289,6 +331,7 @@ export default function App() {
             visible={!!periodSummary}
             summary={periodSummary}
             stage={gameState.profile.stage}
+            petName={petName}
             onClose={() => setPeriodSummary(null)}
           />
         </SafeAreaView>

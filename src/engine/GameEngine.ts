@@ -53,6 +53,8 @@ export interface EngineState {
   educationalProgress: EducationalProgress;
   demoModeState: boolean;
   settings?: GameSettings;
+  lastDailyRewardTimestamp?: number;
+  lastScratchCardTimestamp?: number;
 }
 
 export interface EngineResult<T = void> {
@@ -134,6 +136,8 @@ export const createDefaultEngineState = (): EngineState => {
     settings: {
       animationsEnabled: true,
     },
+    lastDailyRewardTimestamp: 0,
+    lastScratchCardTimestamp: 0,
   };
 };
 
@@ -207,6 +211,7 @@ export class GameEngine {
       tasksCompletedInPeriod: this.state.tasks.filter((t) => t.completed).length,
       activeGoalPercent: percent,
       lastActionType,
+      petName: this.state.playerProfile.petName,
     });
     this.state.petState.moodState = evalResult.moodState;
     this.state.petState.statusText = evalResult.statusText;
@@ -433,19 +438,33 @@ export class GameEngine {
         };
       }
 
-      this.state.balance -= amount;
-      this.state.savings += amount;
-      this.state.actualSavings += amount;
-
-      // Update goal
       const activeGoal = this.getCurrentGoal();
-      if (activeGoal) {
-        activeGoal.savedAmount = Math.min(activeGoal.totalCost, activeGoal.savedAmount + amount);
-        if (activeGoal.savedAmount >= activeGoal.totalCost) {
-          this.state.petState.statusText = `Ура! Главная цель «${activeGoal.title}» полностью достигнута!`;
-        } else {
-          this.state.petState.statusText = `Отложено +${amount} монет в цель «${activeGoal.title}»!`;
-        }
+      if (!activeGoal) {
+        return { success: false, error: 'Цель не найдена' };
+      }
+      if (activeGoal.savedAmount >= activeGoal.totalCost || activeGoal.completed) {
+        return {
+          success: false,
+          error: `Цель «${activeGoal.title}» уже выполнена! Выбери новую цель для накоплений.`,
+          teachableMoment: 'Когда цель достигнута, деньги сохраняются на покупку мечты. Пора поставить новую финансовую цель!',
+        };
+      }
+
+      const needed = activeGoal.totalCost - activeGoal.savedAmount;
+      const actualDeposit = Math.min(amount, needed);
+
+      this.state.balance -= actualDeposit;
+      this.state.savings += actualDeposit;
+      this.state.actualSavings += actualDeposit;
+
+      activeGoal.savedAmount += actualDeposit;
+      if (activeGoal.savedAmount >= activeGoal.totalCost) {
+        activeGoal.completed = true;
+        this.state.petState.statusText = `Ура! Главная цель «${activeGoal.title}» полностью достигнута!`;
+        this.emitReaction('goal_reached', `Цель «${activeGoal.title}» достигнута!`);
+      } else {
+        this.state.petState.statusText = `Отложено +${actualDeposit} монет в цель «${activeGoal.title}»!`;
+        this.emitReaction('savings', `+${actualDeposit} монет в копилку!`);
       }
 
       // Record transaction
@@ -454,13 +473,12 @@ export class GameEngine {
         timestamp: Date.now(),
         period: this.state.currentPeriod,
         type: 'savings_deposit',
-        title: activeGoal ? `Копилка «${activeGoal.title}»` : 'Пополнение сбережений',
-        amount: -amount,
+        title: `Копилка «${activeGoal.title}»`,
+        amount: -actualDeposit,
         source: `savings_transfer:${this.state.currentGoalId}`,
         category: 'savings',
       };
       this.state.purchaseHistory.unshift(tx);
-      this.emitReaction('savings', `+${amount} монет в копилку!`);
 
       return {
         success: true,
@@ -477,7 +495,16 @@ export class GameEngine {
       }
 
       const activeGoal = this.getCurrentGoal();
-      if (!activeGoal || activeGoal.savedAmount < amount) {
+      if (!activeGoal) {
+        return { success: false, error: 'Цель не найдена' };
+      }
+      if (activeGoal.savedAmount >= activeGoal.totalCost || activeGoal.completed) {
+        return {
+          success: false,
+          error: `Цель «${activeGoal.title}» уже выполнена! Монеты зафиксированы для покупки мечты и не могут быть сняты.`,
+        };
+      }
+      if (activeGoal.savedAmount < amount) {
         return { success: false, error: 'В выбранной копилке недостаточно средств для снятия' };
       }
       if (this.state.savings < amount) {
@@ -510,6 +537,81 @@ export class GameEngine {
         data: { newSavings: this.state.savings, newBalance: this.state.balance },
         teachableMoment: `Досрочное снятие ${amount} монет увеличило срок накопления цели «${activeGoal.title}». Старайся не трогать копилку без острой необходимости.`,
       };
+    });
+  }
+
+  // DAILY REWARD & SCRATCH TICKET COOLDOWNS (Раз в сутки)
+  public canClaimDailyReward(): boolean {
+    if (!this.state.lastDailyRewardTimestamp) return true;
+    const lastDate = new Date(this.state.lastDailyRewardTimestamp).toDateString();
+    const today = new Date().toDateString();
+    return lastDate !== today;
+  }
+
+  public canScratchTicket(): boolean {
+    if (!this.state.lastScratchCardTimestamp) return true;
+    const lastDate = new Date(this.state.lastScratchCardTimestamp).toDateString();
+    const today = new Date().toDateString();
+    return lastDate !== today;
+  }
+
+  public claimDailyReward(amount: number = 10, title: string = 'Ежедневная награда'): EngineResult<{ newBalance: number }> {
+    return this.runTransaction(() => {
+      if (!this.canClaimDailyReward()) {
+        return {
+          success: false,
+          error: 'Ежедневную награду можно получать только раз в сутки. Приходи завтра!',
+        };
+      }
+      this.state.lastDailyRewardTimestamp = Date.now();
+      this.state.balance += amount;
+      this.state.petState.mood = Math.min(100, this.state.petState.mood + 10);
+      this.state.petState.statusText = `Получена ежедневная награда: +${amount} монет!`;
+
+      const tx: GameTransaction = {
+        id: `tx_daily_${Date.now()}`,
+        timestamp: Date.now(),
+        period: this.state.currentPeriod,
+        type: 'income',
+        title,
+        amount,
+        source: 'daily_reward',
+        category: 'reward',
+      };
+      this.state.incomeHistory.unshift(tx);
+      this.emitReaction('reward', `+${amount} монет!`);
+
+      return { success: true, data: { newBalance: this.state.balance } };
+    });
+  }
+
+  public claimScratchReward(amount: number = 15, title: string = 'Счастливый билет'): EngineResult<{ newBalance: number }> {
+    return this.runTransaction(() => {
+      if (!this.canScratchTicket()) {
+        return {
+          success: false,
+          error: 'Счастливый билет доступен только раз в сутки. Возвращайся завтра!',
+        };
+      }
+      this.state.lastScratchCardTimestamp = Date.now();
+      this.state.balance += amount;
+      this.state.petState.mood = Math.min(100, this.state.petState.mood + 15);
+      this.state.petState.statusText = `Счастливый билет принёс +${amount} монет!`;
+
+      const tx: GameTransaction = {
+        id: `tx_scratch_${Date.now()}`,
+        timestamp: Date.now(),
+        period: this.state.currentPeriod,
+        type: 'income',
+        title,
+        amount,
+        source: 'scratch_ticket',
+        category: 'reward',
+      };
+      this.state.incomeHistory.unshift(tx);
+      this.emitReaction('reward', `+${amount} монет!`);
+
+      return { success: true, data: { newBalance: this.state.balance } };
     });
   }
 
@@ -575,9 +677,10 @@ export class GameEngine {
       }
       this.updateLiteracyLevel();
 
+      const currentPet = this.state.playerProfile.petName || 'Питомец';
       this.state.petState.statusText = option.isCorrect
-        ? 'Финни гордится твоим мудрым решением!'
-        : 'Финни понял ошибку и в следующий раз поступит лучше.';
+        ? `${currentPet} гордится твоим мудрым решением!`
+        : `${currentPet} понял ошибку и в следующий раз поступит лучше.`;
 
       this.emitReaction('task_completed', `+${reward} монет за задачу!`);
 
@@ -637,7 +740,7 @@ export class GameEngine {
         disciplined,
         bonusAwarded: bonus,
         resultDescription: disciplined
-          ? 'Отличный период! План выполнен, Финни сыт, а мечта стала ближе.'
+          ? `Отличный период! План выполнен, ${this.state.playerProfile.petName || 'питомец'} сыт, а мечта стала ближе.`
           : 'Период завершён. Обрати внимание на соблюдение обязательных расходов.',
         petStateDelta: {
           satiety: consequences.satietyDelta,
@@ -679,6 +782,7 @@ export class GameEngine {
     let satietyDelta = 0;
     let moodDelta = 0;
     let advice = 'Все показатели в норме.';
+    const pName = this.state.playerProfile.petName || 'Питомец';
 
     // Hunger consequences
     if (this.state.actualMandatory === 0) {
@@ -686,13 +790,13 @@ export class GameEngine {
       moodDelta = -10;
       this.state.petState.satiety = Math.max(10, this.state.petState.satiety + satietyDelta);
       this.state.petState.mood = Math.max(10, this.state.petState.mood + moodDelta);
-      advice = 'Финни проголодался без обязательных покупок еды! Обязательно покорми его.';
+      advice = `${pName} проголодался без обязательных покупок еды! Обязательно покорми его.`;
     } else {
       satietyDelta = 10;
       moodDelta = 10;
       this.state.petState.satiety = Math.min(100, this.state.petState.satiety + satietyDelta);
       this.state.petState.mood = Math.min(100, this.state.petState.mood + moodDelta);
-      advice = 'Финни сыт и доволен соблюдением режима дня.';
+      advice = `${pName} сыт и доволен соблюдением режима дня.`;
     }
 
     return { satietyDelta, moodDelta, advice };
